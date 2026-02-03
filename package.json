@@ -1,0 +1,14 @@
+{
+  "name": "sentimind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sentimind - Brand sentiment analysis platform",
+  "scripts": {
+    "dev": "concurrently -n auth,frontend -c blue,magenta \"npm run dev --prefix auth-service\" \"npm run dev --prefix frontend\"",
+    "dev:auth": "npm run dev --prefix auth-service",
+    "dev:frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

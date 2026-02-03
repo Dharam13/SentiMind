@@ -1,0 +1,61 @@
+// Sentimind Auth Service - Prisma Schema
+// Database: brand_auth_db (code-first, migrations only)
+// Single source of truth for all auth tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// User Model
+// ---------------------------------------------------------------------------
+
+model User {
+  id        Int      @id @default(autoincrement())
+  firstName String   @map("first_name")
+  lastName  String?  @map("last_name")
+  email     String   @unique
+  password  String   // Always store bcrypt hash, never plain text
+  isVerified Boolean @default(false) @map("is_verified")
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions Session[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Session / Refresh Token Model
+// ---------------------------------------------------------------------------
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  refreshToken String   @unique @map("refresh_token")
+  expiresAt   DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
+}

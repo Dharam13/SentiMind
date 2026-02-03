@@ -1,13 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnimatedGraph } from "@/components/AnimatedGraph";
 import { MentionBubbles } from "@/components/MentionBubbles";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const { user, loading, logout } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -17,10 +20,45 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-      <ThemeToggle />
-      
+      {/* Top bar: theme toggle + auth */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
+        <ThemeToggle />
+        <nav className="flex items-center gap-3">
+          {!loading && (
+            user ? (
+              <>
+                <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[180px]">
+                  {user.email}
+                </span>
+                <button
+                  onClick={() => logout()}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow hover:shadow-md transition-shadow"
+                >
+                  Sign up
+                </Link>
+              </>
+            )
+          )}
+        </nav>
+      </header>
+
       {/* Hero Section with Animated Graph */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-16">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
         
@@ -151,13 +189,15 @@ export default function Home() {
               transition={{ delay: 1 }}
               className="pt-4"
             >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow"
-              >
-                Get Started
-              </motion.button>
+              <Link href={user ? "#" : "/signup"}>
+                <motion.span
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  {user ? "Dashboard" : "Get Started"}
+                </motion.span>
+              </Link>
             </motion.div>
 
             {/* Stats */}
