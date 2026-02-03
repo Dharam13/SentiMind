@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --senti-dark: #0f0f1a;
+  --senti-card: #1a1a2e;
+  --senti-border: #2a2a4a;
+  --senti-purple: #8b5cf6;
+  --senti-blue: #3b82f6;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--senti-dark);
+  color: #fff;
+  min-height: 100vh;
+}
+
+html {
+  scroll-behavior: smooth;
+}
