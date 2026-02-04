@@ -7,7 +7,10 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-senti-border bg-senti-dark/90 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-        <Link to="/" className="text-lg font-semibold text-white">
+        <Link
+          to="/"
+          className="bg-gradient-to-r from-senti-purple to-senti-blue bg-clip-text text-lg font-semibold text-transparent"
+        >
           Sentimind
         </Link>
         <nav className="flex items-center gap-4">

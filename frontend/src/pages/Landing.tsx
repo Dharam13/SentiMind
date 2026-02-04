@@ -17,22 +17,46 @@ const stats = [
 
 const features = [
   {
-    title: "Real-Time Tracking",
+    title: "Track Hashtags",
     description:
-      "Monitor brand mentions across news, social media, and blogs as they happen. Never miss a conversation about your brand.",
-    icon: "📡",
+      "Track various hashtags and find influencers. Measure the effects of a hashtag campaign, like reach and engagement.",
+    icon: "#",
+    accentClasses: "bg-blue-500/15 text-blue-400",
   },
   {
-    title: "Sentiment Analysis",
+    title: "Analyse Reach & Sentiment",
     description:
-      "AI-powered sentiment scoring powered by BERT. Understand positive, neutral, and negative sentiment at a glance.",
+      "Analyse the reach and sentiment of your brand. Understand how users perceive your brand with detailed sentiment analysis and influencer scoring.",
     icon: "📊",
+    accentClasses: "bg-purple-500/15 text-purple-400",
   },
   {
-    title: "Actionable Insights",
+    title: "Real-Time Alerts",
     description:
-      "Turn data into decisions. Get clear, actionable insights to improve your brand health and customer perception.",
-    icon: "💡",
+      "React in real-time with customised alerts. Stay informed about brand mentions and sentiment changes as they happen.",
+    icon: "🔔",
+    accentClasses: "bg-pink-500/15 text-pink-400",
+  },
+  {
+    title: "Personalized Reports",
+    description:
+      "Create personalized reports for competitive analysis. Get insights that help you understand your position in the market.",
+    icon: "📄",
+    accentClasses: "bg-emerald-500/15 text-emerald-400",
+  },
+  {
+    title: "AI Brand Assistant",
+    description:
+      "Get personalized recommendations with AI Brand Assistant. Leverage AI to get actionable insights for your brand strategy.",
+    icon: "🤖",
+    accentClasses: "bg-amber-500/15 text-amber-400",
+  },
+  {
+    title: "Influencer Scoring",
+    description:
+      "Understand the sentiment of users with their influencer score. Identify key influencers and measure their impact on your brand.",
+    icon: "👥",
+    accentClasses: "bg-indigo-500/15 text-indigo-400",
   },
 ];
 
@@ -151,6 +175,13 @@ export function Landing() {
           </div>
         </section>
 
+        {/* Live Sentiment Trends */}
+        <section className="relative px-4 py-16">
+          <div className="mx-auto max-w-6xl">
+            <LiveSentimentChart />
+          </div>
+        </section>
+
         {/* Features */}
         <section className="relative border-t border-senti-border bg-senti-card/20 px-4 py-20">
           <div className="mx-auto max-w-6xl">
@@ -174,11 +205,16 @@ export function Landing() {
                   key={feature.title}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -6, scale: 1.02 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                   className="rounded-2xl border border-senti-border bg-senti-dark/80 p-6 transition-colors hover:border-senti-purple/40 hover:bg-senti-card/40"
                 >
-                  <div className="mb-4 text-3xl">{feature.icon}</div>
+                  <div
+                    className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl text-xl ${feature.accentClasses}`}
+                  >
+                    <span>{feature.icon}</span>
+                  </div>
                   <h3 className="mb-2 text-lg font-semibold text-white">
                     {feature.title}
                   </h3>
@@ -188,13 +224,6 @@ export function Landing() {
                 </motion.div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Live Sentiment Trends */}
-        <section className="relative px-4 py-16">
-          <div className="mx-auto max-w-6xl">
-            <LiveSentimentChart />
           </div>
         </section>
 
