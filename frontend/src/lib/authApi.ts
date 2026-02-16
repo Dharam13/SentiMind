@@ -39,6 +39,11 @@ export interface SignupResponse {
   user: User;
 }
 
+export interface UpdateProfileBody {
+  firstName: string;
+  lastName?: string | null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit & { accessToken?: string } = {}
@@ -94,4 +99,15 @@ export async function me(accessToken: string): Promise<{
   role: string;
 }> {
   return request("/me", { accessToken });
+}
+
+export async function updateProfile(
+  accessToken: string,
+  body: UpdateProfileBody
+): Promise<{ user: User }> {
+  return request<{ user: User }>("/me", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+    accessToken,
+  });
 }

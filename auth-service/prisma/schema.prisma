@@ -20,6 +20,11 @@ enum Role {
   ADMIN
 }
 
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ---------------------------------------------------------------------------
 // User Model
 // ---------------------------------------------------------------------------
@@ -36,6 +41,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   sessions Session[]
+  projects Project[]
 
   @@index([email])
   @@map("users")
@@ -49,7 +55,7 @@ model Session {
   id           Int      @id @default(autoincrement())
   userId       Int      @map("user_id")
   refreshToken String   @unique @map("refresh_token")
-  expiresAt   DateTime @map("expires_at")
+  expiresAt    DateTime @map("expires_at")
   createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -58,4 +64,24 @@ model Session {
   @@index([refreshToken])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Project Model
+// ---------------------------------------------------------------------------
+
+model Project {
+  id             Int           @id @default(autoincrement())
+  userId         Int           @map("user_id")
+  primaryKeyword String        @map("primary_keyword")
+  description    String?       @map("description")
+  domain         String        @map("domain")
+  status         ProjectStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("projects")
 }

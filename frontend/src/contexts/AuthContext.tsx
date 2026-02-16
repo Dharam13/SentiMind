@@ -25,6 +25,7 @@ interface AuthContextValue extends AuthState {
   logout: () => Promise<void>;
   setTokens: (access: string, refresh: string, user: User) => void;
   clearAuth: () => void;
+  updateProfile: (data: authApi.UpdateProfileBody) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -105,6 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuth();
   }, [state.refreshToken, clearAuth]);
 
+  const updateProfile = useCallback(
+    async (data: authApi.UpdateProfileBody) => {
+      const access = state.accessToken ?? getStoredAccess();
+      if (!access) {
+        throw new Error("Not authenticated");
+      }
+      const res = await authApi.updateProfile(access, data);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(res.user));
+      setState((prev) => ({
+        ...prev,
+        user: res.user,
+      }));
+    },
+    [state.accessToken]
+  );
+
   useEffect(() => {
     const refresh = getStoredRefresh();
     const access = getStoredAccess();
@@ -135,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     setTokens,
     clearAuth,
+    updateProfile,
   };
 
   return (

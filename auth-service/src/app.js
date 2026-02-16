@@ -7,6 +7,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { env } = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -25,6 +26,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/projects", projectRoutes);
 
 app.use(errorHandler);
 

@@ -28,6 +28,16 @@ async function findById(id) {
   });
 }
 
+async function updateProfile(id, data) {
+  return prisma.user.update({
+    where: { id },
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName ?? null,
+    },
+  });
+}
+
 function sanitizeUser(user) {
   return {
     id: user.id,
@@ -44,5 +54,6 @@ module.exports = {
   createUser,
   findByEmail,
   findById,
+  updateProfile,
   sanitizeUser,
 };

@@ -16,7 +16,7 @@ export function Signup() {
   const [success, setSuccess] = useState(false);
 
   if (user) {
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
     return null;
   }
 

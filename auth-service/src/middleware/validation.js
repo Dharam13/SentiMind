@@ -49,6 +49,20 @@ const logoutValidation = [
   body("refreshToken").optional(),
 ];
 
+const profileUpdateValidation = [
+  body("firstName")
+    .trim()
+    .notEmpty()
+    .withMessage("First name is required")
+    .isLength({ max: NAME_MAX_LENGTH })
+    .withMessage("First name is too long"),
+  body("lastName")
+    .optional()
+    .trim()
+    .isLength({ max: NAME_MAX_LENGTH })
+    .withMessage("Last name is too long"),
+];
+
 function handleValidation(req, res, next) {
   const errors = validationResult(req);
   if (errors.isEmpty()) {
@@ -64,5 +78,6 @@ module.exports = {
   loginValidation,
   refreshValidation,
   logoutValidation,
+  profileUpdateValidation,
   handleValidation,
 };

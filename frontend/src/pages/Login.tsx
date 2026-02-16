@@ -13,7 +13,7 @@ export function Login() {
   const [loading, setLoading] = useState(false);
 
   if (user) {
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
     return null;
   }
 
@@ -23,7 +23,7 @@ export function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

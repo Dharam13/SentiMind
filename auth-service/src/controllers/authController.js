@@ -66,10 +66,31 @@ async function me(req, res) {
   });
 }
 
+async function updateProfile(req, res) {
+  if (!req.user) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  const userId = parseInt(req.user.sub, 10);
+  if (!Number.isFinite(userId)) {
+    res.status(400).json({ error: "Invalid user id" });
+    return;
+  }
+  const { firstName, lastName } = req.body ?? {};
+  const result = await authService.updateProfile(userId, {
+    firstName,
+    lastName,
+  });
+  res.status(200).json({
+    user: result.user,
+  });
+}
+
 module.exports = {
   signup,
   login,
   refresh,
   logout,
   me,
+  updateProfile,
 };

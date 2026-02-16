@@ -10,6 +10,7 @@ const {
   loginValidation,
   refreshValidation,
   logoutValidation,
+  profileUpdateValidation,
   handleValidation,
 } = require("../middleware/validation");
 const { normalizeRefreshToken } = require("../middleware/refreshToken");
@@ -57,5 +58,15 @@ router.post(
 router.get("/me", requireAuth, (req, res, next) => {
   authController.me(req, res).catch(next);
 });
+
+router.patch(
+  "/me",
+  requireAuth,
+  profileUpdateValidation,
+  handleValidation,
+  (req, res, next) => {
+    authController.updateProfile(req, res).catch(next);
+  }
+);
 
 module.exports = router;

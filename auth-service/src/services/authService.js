@@ -73,10 +73,19 @@ async function logout(refreshToken) {
   await tokenService.invalidateRefreshToken(refreshToken);
 }
 
+async function updateProfile(userId, data) {
+  const user = await userService.updateProfile(userId, {
+    firstName: data.firstName,
+    lastName: data.lastName ?? null,
+  });
+  return { user: userService.sanitizeUser(user) };
+}
+
 module.exports = {
   AuthError,
   signup,
   login,
   refreshTokens,
   logout,
+  updateProfile,
 };
