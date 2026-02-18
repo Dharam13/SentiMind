@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AreaChart,
@@ -65,8 +65,9 @@ function isPlatformIncluded(platform: string, filter: SourceFilter) {
 export function ProjectDashboard() {
   const { id } = useParams();
   const projectId = useMemo(() => parseInt(String(id), 10), [id]);
-  const { user, accessToken, loading } = useAuth();
+  const { user, accessToken, loading, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const [project, setProject] = useState<Project | null>(null);
   const [nav, setNav] = useState<NavItem>("mentions");
@@ -80,6 +81,12 @@ export function ProjectDashboard() {
   const [loadingProject, setLoadingProject] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileFirstName, setProfileFirstName] = useState(user?.firstName ?? "");
+  const [profileLastName, setProfileLastName] = useState(user?.lastName ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -110,6 +117,24 @@ export function ProjectDashboard() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load summary"))
       .finally(() => setLoadingSummary(false));
   }, [projectId, project, hours]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileFirstName(user.firstName);
+      setProfileLastName(user.lastName ?? "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUserMenu]);
 
   const mentionsReachData = useMemo(() => {
     const ts = summary?.timeSeries ?? [];
@@ -181,7 +206,27 @@ export function ProjectDashboard() {
     }
   }
 
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingProfile(true);
+    setError(null);
+    try {
+      await updateProfile({
+        firstName: profileFirstName.trim(),
+        lastName: profileLastName.trim() || null,
+      });
+      setShowProfile(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
   if (!user) return null;
+
+  const initials =
+    (user.firstName?.[0] ?? "").toUpperCase() + (user.lastName?.[0] ?? "").toUpperCase();
 
   return (
     <div className="min-h-screen bg-senti-dark text-white">
@@ -254,8 +299,8 @@ export function ProjectDashboard() {
 
         {/* Main */}
         <div className="flex min-h-screen flex-1 flex-col">
-          {/* Top bar */}
-          <header className="flex h-16 items-center justify-between gap-3 border-b border-senti-border bg-senti-dark/90 px-4 backdrop-blur md:px-6">
+          {/* Top bar - z-30 so header and dropdown sit above content */}
+          <header className="relative z-30 flex h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-senti-border bg-senti-dark/95 px-4 backdrop-blur md:px-6">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Project
@@ -283,6 +328,57 @@ export function ProjectDashboard() {
               >
                 {running ? "Running…" : "Run"}
               </button>
+
+              <div ref={userMenuRef} className="relative ml-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowUserMenu((open) => !open);
+                  }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-senti-purple/30 text-sm font-semibold text-white ring-senti-purple/50 transition hover:ring-2"
+                  aria-expanded={showUserMenu}
+                  aria-haspopup="true"
+                  title="Profile menu"
+                >
+                  {initials || "U"}
+                </button>
+                {showUserMenu && (
+                  <div
+                    className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-senti-border bg-senti-card shadow-xl ring-1 ring-black/10"
+                    role="menu"
+                  >
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowUserMenu(false);
+                          setShowProfile(true);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-100 hover:bg-senti-card"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowUserMenu(false);
+                          void logout();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
@@ -623,6 +719,71 @@ export function ProjectDashboard() {
           </main>
         </div>
       </div>
+
+      {/* Profile modal */}
+      {showProfile && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/95 p-6 shadow-2xl">
+            <h2 className="mb-1 text-lg font-semibold text-white">Profile settings</h2>
+            <p className="mb-4 text-sm text-gray-400">
+              Update your name details. Your email is fixed for this account.
+            </p>
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                    First name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileFirstName}
+                    onChange={(e) => setProfileFirstName(e.target.value)}
+                    className="w-full rounded-xl border border-senti-border bg-senti-dark px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                    Last name
+                  </label>
+                  <input
+                    type="text"
+                    value={profileLastName}
+                    onChange={(e) => setProfileLastName(e.target.value)}
+                    className="w-full rounded-xl border border-senti-border bg-senti-dark px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-300">Email</label>
+                <input
+                  type="email"
+                  value={user.email}
+                  disabled
+                  className="w-full cursor-not-allowed rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2 text-sm text-gray-400"
+                />
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowProfile(false)}
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 hover:bg-senti-border/60"
+                  disabled={savingProfile}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="rounded-xl bg-gradient-to-r from-senti-purple to-senti-blue px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
+                >
+                  {savingProfile ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

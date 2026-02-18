@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import * as projectApi from "../lib/projectApi";
@@ -9,6 +9,7 @@ type Project = projectApi.Project;
 export function Projects() {
   const { user, accessToken, loading, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -59,6 +60,18 @@ export function Projects() {
       setProfileLastName(user.lastName ?? "");
     }
   }, [user]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    if (!showUserMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUserMenu]);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedId) ?? null,
@@ -184,15 +197,15 @@ export function Projects() {
 
         {/* Main */}
         <div className="flex min-h-screen flex-1 flex-col">
-          {/* Top bar */}
-          <header className="flex h-16 items-center justify-between border-b border-senti-border bg-senti-dark/90 px-4 backdrop-blur md:px-6">
+          {/* Top bar - z-30 so it and dropdown sit above main content */}
+          <header className="relative z-30 flex h-16 flex-shrink-0 items-center justify-between border-b border-senti-border bg-senti-dark/95 px-4 backdrop-blur md:px-6">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-gray-300">Projects</span>
               <span className="hidden text-xs text-gray-500 md:inline">
                 • Create & manage brand keywords
               </span>
             </div>
-            <div className="relative flex items-center gap-3">
+            <div ref={userMenuRef} className="relative flex items-center gap-3">
               <div className="hidden text-right text-xs leading-tight sm:block">
                 <div className="font-medium text-gray-100">
                   {user.firstName} {user.lastName ?? ""}
@@ -201,30 +214,49 @@ export function Projects() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowUserMenu((open) => !open)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-senti-purple/30 text-sm font-semibold text-white ring-senti-purple/50 transition hover:ring-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowUserMenu((open) => !open);
+                }}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-senti-purple/30 text-sm font-semibold text-white ring-senti-purple/50 transition hover:ring-2"
+                aria-expanded={showUserMenu}
+                aria-haspopup="true"
               >
                 {initials || "U"}
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 top-11 z-20 w-48 rounded-xl border border-senti-border bg-senti-card/95 p-1 text-sm shadow-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      setShowProfile(true);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-gray-100 hover:bg-senti-card"
-                  >
-                    <span>Profile</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => logout()}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-red-300 hover:bg-red-500/10"
-                  >
-                    <span>Logout</span>
-                  </button>
+                <div
+                  className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-senti-border bg-senti-card shadow-xl ring-1 ring-black/10"
+                  role="menu"
+                >
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowUserMenu(false);
+                        setShowProfile(true);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-100 hover:bg-senti-card"
+                    >
+                      Profile
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowUserMenu(false);
+                        void logout();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -406,9 +438,9 @@ export function Projects() {
         </div>
       </div>
 
-      {/* New project modal */}
+      {/* New project modal - above header and dropdown */}
       {showNewProject && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/95 p-6 shadow-2xl">
             <h2 className="mb-1 text-lg font-semibold text-white">Create project</h2>
             <p className="mb-4 text-sm text-gray-400">
@@ -475,9 +507,9 @@ export function Projects() {
         </div>
       )}
 
-      {/* Profile modal */}
+      {/* Profile modal - above header and dropdown */}
       {showProfile && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/95 p-6 shadow-2xl">
             <h2 className="mb-1 text-lg font-semibold text-white">Profile settings</h2>
             <p className="mb-4 text-sm text-gray-400">
