@@ -11,11 +11,14 @@ router.get("/youtube", collectController.collectYouTube);
 // Blogs
 router.get("/tumblr", collectController.collectTumblr);
 
-// Web search (Google Custom Search - replaces WordPress & Blogger)
-router.get("/web", collectController.collectWeb);
-
 // News
 router.get("/news", collectController.collectNews);
+
+// Aggregated project dashboard data
+router.get("/summary", collectController.getProjectSummary);
+
+// Trigger a run to collect + store mentions for a project
+router.post("/run", collectController.runCollection);
 
 module.exports = router;
 

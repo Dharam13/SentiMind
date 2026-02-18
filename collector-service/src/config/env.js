@@ -28,7 +28,6 @@ const env = {
     twitter: optionalIntEnv("TWITTER_DEFAULT_HOURS", 24),
     youtube: optionalIntEnv("YOUTUBE_DEFAULT_HOURS", 24),
     tumblr: optionalIntEnv("TUMBLR_DEFAULT_HOURS", 24),
-    web: optionalIntEnv("WEB_DEFAULT_HOURS", 24),
     news: optionalIntEnv("NEWS_DEFAULT_HOURS", 24),
   },
 
@@ -36,8 +35,7 @@ const env = {
   twitterApiKey: optionalEnv("TWITTER_API_KEY", ""),
   youtubeApiKey: optionalEnv("YOUTUBE_API_KEY", ""),
   newsApiKey: optionalEnv("NEWSAPI_KEY", ""),
-  googleApiKey: optionalEnv("GOOGLE_API_KEY", ""),
-  googleSearchCx: optionalEnv("GOOGLE_SEARCH_CX", ""),
+  gnewsApiKey: optionalEnv("GNEWS_API_KEY", ""),
   tumblrApiKey: optionalEnv("TUMBLR_API_KEY", ""),
 };
 

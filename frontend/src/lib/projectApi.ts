@@ -76,3 +76,10 @@ export async function updateProject(
   });
 }
 
+export async function getProject(accessToken: string, id: number): Promise<{ project: Project }> {
+  return request<{ project: Project }>(`/${id}`, {
+    method: "GET",
+    accessToken,
+  });
+}
+

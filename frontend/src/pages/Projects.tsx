@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import * as projectApi from "../lib/projectApi";
+import * as collectorApi from "../lib/collectorApi";
 
 type Project = projectApi.Project;
 
-export function Dashboard() {
+export function Projects() {
   const { user, accessToken, loading, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
 
@@ -22,10 +23,11 @@ export function Dashboard() {
 
   const [showProfile, setShowProfile] = useState(false);
   const [profileFirstName, setProfileFirstName] = useState(user?.firstName ?? "");
-  const [profileLastName, setProfileLastName] = useState(user?.lastName ?? "" );
+  const [profileLastName, setProfileLastName] = useState(user?.lastName ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -101,9 +103,7 @@ export function Dashboard() {
       const res = await projectApi.updateProject(accessToken, project.id, {
         status: nextStatus,
       });
-      setProjects((prev) =>
-        prev.map((p) => (p.id === res.project.id ? res.project : p))
-      );
+      setProjects((prev) => prev.map((p) => (p.id === res.project.id ? res.project : p)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update project");
     }
@@ -123,6 +123,25 @@ export function Dashboard() {
       setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleRunCollector() {
+    if (!selectedProject) return;
+    setRunning(true);
+    setError(null);
+    try {
+      await collectorApi.runCollection({
+        projectId: selectedProject.id,
+        keyword: selectedProject.primaryKeyword,
+        limit: 25,
+        hours: 24,
+      });
+      navigate(`/projects/${selectedProject.id}`, { replace: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Collector run failed");
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -168,9 +187,9 @@ export function Dashboard() {
           {/* Top bar */}
           <header className="flex h-16 items-center justify-between border-b border-senti-border bg-senti-dark/90 px-4 backdrop-blur md:px-6">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-300">Dashboard</span>
+              <span className="text-sm font-semibold text-gray-300">Projects</span>
               <span className="hidden text-xs text-gray-500 md:inline">
-                • Manage your brand projects
+                • Create & manage brand keywords
               </span>
             </div>
             <div className="relative flex items-center gap-3">
@@ -221,11 +240,9 @@ export function Dashboard() {
 
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-white md:text-2xl">
-                  Your Projects
-                </h1>
+                <h1 className="text-xl font-semibold text-white md:text-2xl">Your Projects</h1>
                 <p className="text-sm text-gray-400">
-                  Create projects to track a primary brand keyword, description and domain.
+                  Each project tracks a primary keyword and stores mentions over time.
                 </p>
               </div>
               <button
@@ -251,8 +268,7 @@ export function Dashboard() {
                     </div>
                   ) : projects.length === 0 ? (
                     <div className="rounded-xl bg-senti-dark/60 p-4 text-sm text-gray-400">
-                      You don&apos;t have any projects yet. Create your first one to get
-                      started.
+                      You don&apos;t have any projects yet. Create your first one to get started.
                     </div>
                   ) : (
                     <ul className="space-y-1">
@@ -305,9 +321,7 @@ export function Dashboard() {
                           <h2 className="text-xl font-semibold text-white md:text-2xl">
                             {selectedProject.primaryKeyword}
                           </h2>
-                          <p className="mt-1 text-sm text-gray-400">
-                            {selectedProject.domain}
-                          </p>
+                          <p className="mt-1 text-sm text-gray-400">{selectedProject.domain}</p>
                         </div>
                         <div className="flex flex-col items-start gap-2 md:items-end">
                           <span
@@ -319,15 +333,32 @@ export function Dashboard() {
                           >
                             {selectedProject.status === "ACTIVE" ? "Active" : "Inactive"}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(selectedProject)}
-                            className="inline-flex items-center rounded-lg border border-senti-border px-3 py-1.5 text-xs font-medium text-gray-100 hover:border-senti-purple hover:text-senti-purple"
-                          >
-                            {selectedProject.status === "ACTIVE"
-                              ? "Set as Inactive"
-                              : "Set as Active"}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(selectedProject)}
+                              className="inline-flex items-center rounded-lg border border-senti-border px-3 py-1.5 text-xs font-medium text-gray-100 hover:border-senti-purple hover:text-senti-purple"
+                            >
+                              {selectedProject.status === "ACTIVE"
+                                ? "Set as Inactive"
+                                : "Set as Active"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={running}
+                              onClick={handleRunCollector}
+                              className="inline-flex items-center rounded-lg bg-gradient-to-r from-senti-purple to-senti-blue px-3 py-1.5 text-xs font-semibold text-white shadow disabled:opacity-60"
+                            >
+                              {running ? "Running…" : "Run"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/projects/${selectedProject.id}`)}
+                              className="inline-flex items-center rounded-lg border border-senti-border px-3 py-1.5 text-xs font-medium text-gray-100 hover:border-senti-blue hover:text-senti-blue"
+                            >
+                              Open dashboard →
+                            </button>
+                          </div>
                         </div>
                       </div>
 

@@ -1,15 +1,12 @@
 /**
  * Test script to verify Collector Service endpoints
  * Run this after starting the service: npm run test
- * 
- * Note: Google Custom Search API has rate limits (100 requests/day free tier)
- *       Tests include delays to respect rate limits
  */
 
 const axios = require("axios");
 
 const BASE_URL = "http://localhost:8021";
-const TEST_KEYWORD = "tesla"; // Neutral test keyword
+const TEST_KEYWORD = "nvidia"; // Neutral test keyword
 const TEST_PROJECT_ID = 1;
 
 const endpoints = [
@@ -49,19 +46,11 @@ const endpoints = [
     description: "Tumblr blog mentions"
   },
   { 
-    name: "Web (Google Search)", 
-    path: `/api/collect/web?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
-    method: "GET",
-    timeout: 45000,
-    description: "Web mentions via Google Custom Search (may take longer)",
-    rateLimitDelay: 2000 // Extra delay for Google Search API
-  },
-  { 
     name: "News", 
     path: `/api/collect/news?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
     timeout: 30000,
-    description: "News articles (with 24h→7d fallback)"
+    description: "News articles from multiple providers (with 24h→7d fallback)"
   },
 ];
 
