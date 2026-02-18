@@ -1,5 +1,7 @@
 const COLLECTOR_BASE =
-  (import.meta.env.VITE_COLLECTOR_API_URL as string) || "http://localhost:8021";
+  (import.meta.env.VITE_API_GATEWAY_URL as string) ||
+  (import.meta.env.VITE_COLLECTOR_API_URL as string) ||
+  "http://localhost:8000";
 
 export type Platform = "reddit" | "twitter" | "youtube" | "tumblr" | "news";
 

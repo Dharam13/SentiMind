@@ -4,7 +4,8 @@
   "private": true,
   "description": "Sentimind - Brand sentiment analysis platform",
   "scripts": {
-    "dev": "concurrently -n auth,frontend,collector -c blue,magenta,green \"npm run dev --prefix auth-service\" \"npm run dev --prefix frontend\" \"npm run dev --prefix collector-service\"",
+    "dev": "concurrently -n gateway,auth,frontend,collector -c blue,magenta,cyan,green \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix frontend\" \"npm run dev --prefix collector-service\"",
+    "dev:gateway": "npm run dev --prefix api-gateway",
     "dev:auth": "npm run dev --prefix auth-service",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:collector": "npm run dev --prefix collector-service"
