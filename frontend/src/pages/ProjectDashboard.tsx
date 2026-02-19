@@ -188,18 +188,34 @@ export function ProjectDashboard() {
     setRunning(true);
     setError(null);
     try {
-      await collectorApi.runCollection({
+      console.log(`[Dashboard] Starting collection for project ${project.id}, keyword: ${project.primaryKeyword}`);
+      const result = await collectorApi.runCollection({
         projectId: project.id,
         keyword: project.primaryKeyword,
         limit: 50,
         hours,
       });
+      console.log(`[Dashboard] Collection completed:`, result);
+      
+      // Show errors if any platforms failed
+      if (result.errorsByPlatform && Object.keys(result.errorsByPlatform).length > 0) {
+        const errorMessages = Object.entries(result.errorsByPlatform)
+          .map(([platform, error]) => `${platform}: ${error}`)
+          .join("; ");
+        console.warn(`[Dashboard] Some platforms failed:`, errorMessages);
+        // Don't set as error if we got some data, just log it
+        if (result.insertedCount === 0) {
+          setError(`Collection completed but no data fetched. Errors: ${errorMessages}`);
+        }
+      }
+
       const res = await collectorApi.getProjectSummary({
         projectId: project.id,
         hours,
       });
       setSummary(res);
     } catch (err) {
+      console.error(`[Dashboard] Collection error:`, err);
       setError(err instanceof Error ? err.message : "Collector run failed");
     } finally {
       setRunning(false);

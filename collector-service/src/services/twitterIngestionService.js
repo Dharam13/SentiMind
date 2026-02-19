@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { get } = require("../utils/httpClient");
 const { env } = require("../config/env");
 const { resolveHours, getWindowRange } = require("./timeWindow");
 
@@ -40,7 +40,8 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
 
   let allTweets = [];
   let cursor = null;
-  const maxPages = Math.ceil(limit / 20); // API returns up to 20 per page
+  // Cap to 2 pages so a single platform can't hang the whole run for too long
+  const maxPages = Math.min(2, Math.ceil(limit / 20)); // API returns up to 20 per page
 
   try {
     // Fetch pages until we have enough tweets or no more pages
@@ -50,12 +51,25 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
         requestParams.cursor = cursor;
       }
 
-      const res = await axios.get(url, {
-        params: requestParams,
-        headers: {
-          "X-API-Key": env.twitterApiKey,
+      const res = await get(
+        url,
+        {
+          params: requestParams,
+          headers: {
+            "X-API-Key": env.twitterApiKey,
+          },
         },
-      });
+        {
+          maxRetries: 1,
+          retryDelay: 1000,
+          timeout: 15000,
+          onRetry: (attempt, maxAttempts, delay, error) => {
+            console.warn(
+              `[Twitter] Retry ${attempt}/${maxAttempts} after ${delay}ms: ${error.message || error.code}`
+            );
+          },
+        }
+      );
 
       const tweets = res.data?.tweets || [];
       allTweets = allTweets.concat(tweets);
@@ -107,6 +121,17 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
 
     return { mentions, hoursUsed: effectiveHours };
   } catch (error) {
+    // Enhance error message for DNS errors
+    if (error.code === "ENOTFOUND" || error.code === "EAI_AGAIN") {
+      const err = new Error(
+        `Failed to connect to Twitter API.io. DNS resolution failed. Please check your internet connection and verify the API endpoint is correct. Original error: ${error.message}`
+      );
+      err.status = 503;
+      err.code = "TWITTER_DNS_ERROR";
+      err.originalError = error;
+      throw err;
+    }
+
     if (error.response) {
       const apiError = error.response.data || {};
       const errorMessage =

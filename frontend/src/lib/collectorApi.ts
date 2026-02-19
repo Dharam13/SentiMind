@@ -56,27 +56,82 @@ export interface ProjectSummaryResponse {
   mentions: SummaryMention[];
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${COLLECTOR_BASE}${path}`, {
-    ...(init ?? {}),
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers as Record<string, string>),
-    },
+/**
+ * Create a timeout promise that rejects after specified milliseconds
+ */
+function timeoutPromise<T>(ms: number): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = (data as any)?.error || "Request failed";
-    throw new Error(msg);
+}
+
+/**
+ * Make a fetch request with timeout
+ */
+async function request<T>(path: string, init?: RequestInit, timeoutMs: number = 120000): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.warn(`[API] Request timeout after ${timeoutMs}ms: ${path}`);
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    console.log(`[API] Making request: ${init?.method || "GET"} ${path}`);
+    const fetchPromise = fetch(`${COLLECTOR_BASE}${path}`, {
+      ...(init ?? {}),
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers as Record<string, string>),
+      },
+    });
+
+    const res = await Promise.race([
+      fetchPromise,
+      timeoutPromise<Response>(timeoutMs),
+    ]);
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const msg = (data as any)?.error || `Request failed with status ${res.status}`;
+      console.error(`[API] Request failed: ${res.status} - ${msg}`);
+      throw new Error(msg);
+    }
+
+    const data = await res.json().catch((err) => {
+      console.error(`[API] Failed to parse JSON response:`, err);
+      throw new Error("Invalid response from server");
+    });
+
+    console.log(`[API] Request successful: ${path}`);
+    return data as T;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error) {
+      if (error.name === "AbortError" || error.message.includes("timed out") || controller.signal.aborted) {
+        const timeoutMsg = `Request timed out after ${timeoutMs}ms. The collector may be taking too long or there may be network issues.`;
+        console.error(`[API] ${timeoutMsg}`);
+        throw new Error(timeoutMsg);
+      }
+      console.error(`[API] Request error:`, error.message);
+      throw error;
+    }
+    throw new Error("Request failed");
   }
-  return data as T;
 }
 
 export async function runCollection(body: RunCollectionBody): Promise<RunCollectionResponse> {
-  return request<RunCollectionResponse>("/api/collect/run", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  // Give collector 2 minutes to complete (should be enough with our timeout fixes)
+  return request<RunCollectionResponse>(
+    "/api/collect/run",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+    120000 // 2 minutes timeout
+  );
 }
 
 export async function getProjectSummary(params: {

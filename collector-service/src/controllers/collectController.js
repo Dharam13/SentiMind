@@ -265,9 +265,56 @@ async function getProjectSummary(req, res, next) {
 }
 
 async function runCollection(req, res, next) {
+  const startTime = Date.now();
+  
+  // Check if request was aborted before we start
+  if (req.aborted || req.destroyed) {
+    console.warn("[Collector] Request was aborted before processing");
+    if (!res.headersSent) {
+      return res.status(400).json({ error: "Request was cancelled", code: "REQUEST_ABORTED" });
+    }
+    return;
+  }
+
+  // Log immediately to confirm handler started
+  console.log(`[Collector] Received runCollection request at ${new Date().toISOString()}`);
+
+  // Set up request timeout handler
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error("[Collector] Request timeout after 2 minutes - sending response");
+      res.status(504).json({
+        error: "Collection request timed out",
+        code: "TIMEOUT",
+        message: "The collection process took too long to complete",
+      });
+    }
+  }, 120000); // 2 minutes
+
+  // Clean up timeout when response is sent
+  const originalEnd = res.end;
+  res.end = function (...args) {
+    clearTimeout(timeout);
+    return originalEnd.apply(this, args);
+  };
+
+  // Handle client disconnect
+  req.on("close", () => {
+    if (!res.headersSent) {
+      console.warn("[Collector] Client disconnected before response");
+      clearTimeout(timeout);
+    }
+  });
+
   try {
+    // Validate body exists
+    if (!req.body || typeof req.body !== "object") {
+      clearTimeout(timeout);
+      return res.status(400).json({ error: "Invalid request body", code: "INVALID_BODY" });
+    }
+
     const { projectId: projectIdRaw, keyword, limit: limitRaw, hours: hoursRaw, platforms } =
-      req.body ?? {};
+      req.body;
 
     if (!projectIdRaw) {
       return res.status(400).json({ error: "projectId is required" });
@@ -296,42 +343,117 @@ async function runCollection(req, res, next) {
       return res.status(400).json({ error: "No valid platforms provided" });
     }
 
-    const settled = await Promise.allSettled(
-      platformList.map(async (platform) => {
-        try {
-          const fetchFn = getFetchFn(platform);
-          if (!fetchFn) {
-            const err = new Error(`Unsupported platform '${platform}'`);
-            err.code = "UNSUPPORTED_PLATFORM";
-            err.platform = platform;
-            throw err;
-          }
-          const result = await fetchFn({ keyword: keyword.trim(), limit, hours });
-          return { platform, ...result };
-        } catch (e) {
-          if (e && typeof e === "object" && !e.platform) {
-            e.platform = platform;
-          }
-          throw e;
-        }
-      })
-    );
+    console.log(`[Collector] Starting collection run for projectId=${projectId}, keyword="${keyword.trim()}", platforms=[${platformList.join(", ")}]`);
 
+    // Initialize result tracking
     const fetchedByPlatform = {};
     const errorsByPlatform = {};
     let combinedMentions = [];
     let hoursUsed = hours ?? DEFAULT_SUMMARY_HOURS;
 
-    for (const item of settled) {
-      if (item.status === "fulfilled") {
-        const { platform, mentions, hoursUsed: used } = item.value;
-        fetchedByPlatform[platform] = mentions?.length ?? 0;
-        if (used) hoursUsed = used;
-        combinedMentions = combinedMentions.concat(mentions ?? []);
-      } else {
-        const platform = item.reason?.platform || "unknown";
-        errorsByPlatform[platform] = item.reason?.message || "Failed to fetch mentions";
+    // Wrap platform fetching with a timeout to ensure we respond even if platforms hang
+    const platformTimeout = 60000; // 60 seconds max per platform (should be enough with 15s HTTP timeout)
+    
+    const platformPromises = platformList.map(async (platform) => {
+      const platformStart = Date.now();
+      try {
+        console.log(`[Collector] Fetching ${platform} mentions...`);
+        const fetchFn = getFetchFn(platform);
+        if (!fetchFn) {
+          const err = new Error(`Unsupported platform '${platform}'`);
+          err.code = "UNSUPPORTED_PLATFORM";
+          err.platform = platform;
+          throw err;
+        }
+        
+        // Wrap fetch with timeout
+        const fetchPromise = fetchFn({ keyword: keyword.trim(), limit, hours });
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Platform ${platform} timed out after ${platformTimeout}ms`)), platformTimeout);
+        });
+        
+        const result = await Promise.race([fetchPromise, timeoutPromise]);
+        const duration = Date.now() - platformStart;
+        console.log(`[Collector] ✓ ${platform}: ${result.mentions?.length || 0} mentions (${duration}ms)`);
+        return { platform, ...result };
+      } catch (e) {
+        const duration = Date.now() - platformStart;
+        const errorMsg = e?.message || String(e);
+        console.error(`[Collector] ✗ ${platform}: ${errorMsg} (${duration}ms)`);
+        if (e && typeof e === "object" && !e.platform) {
+          e.platform = platform;
+        }
+        throw e;
       }
+    });
+
+    // Wait for all platforms with an overall timeout
+    // Set to 60 seconds to ensure we respond well before frontend's 120s timeout
+    const overallTimeout = 60000; // 60 seconds total max
+    let settled = [];
+    let timedOut = false;
+    
+    try {
+      const settledPromise = Promise.allSettled(platformPromises);
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.warn(`[Collector] Overall timeout after ${overallTimeout}ms - returning partial results`);
+          resolve("TIMEOUT");
+        }, overallTimeout);
+      });
+
+      const result = await Promise.race([settledPromise, timeoutPromise]);
+      
+      if (result === "TIMEOUT") {
+        timedOut = true;
+        // Don't wait for remaining promises - just mark them as timed out
+        // The settled array will be incomplete, but we'll handle that below
+        console.warn(`[Collector] Timeout reached - some platforms may still be processing`);
+        settled = []; // Will be handled by timeout logic below
+      } else {
+        settled = result;
+      }
+    } catch (error) {
+      console.error(`[Collector] Error in platform fetching: ${error.message}`);
+      settled = [];
+    }
+
+    // Process settled results
+    if (settled.length > 0) {
+      for (let i = 0; i < settled.length; i++) {
+        const item = settled[i];
+        const platform = platformList[i] || "unknown";
+        
+        if (item.status === "fulfilled") {
+          const { platform: p, mentions, hoursUsed: used } = item.value;
+          fetchedByPlatform[p || platform] = mentions?.length ?? 0;
+          if (used) hoursUsed = used;
+          combinedMentions = combinedMentions.concat(mentions ?? []);
+        } else {
+          errorsByPlatform[platform] = item.reason?.message || "Failed to fetch mentions";
+        }
+      }
+    }
+    
+    // If we timed out, mark any platforms that didn't complete
+    if (timedOut || settled.length === 0) {
+      for (const platform of platformList) {
+        if (!fetchedByPlatform[platform] && !errorsByPlatform[platform]) {
+          errorsByPlatform[platform] = "Request timed out";
+        }
+      }
+    }
+
+    const totalDuration = Date.now() - startTime;
+    console.log(`[Collector] Collection run completed in ${totalDuration}ms. Fetched: ${Object.values(fetchedByPlatform).reduce((a, b) => a + b, 0)}, Errors: ${Object.keys(errorsByPlatform).length}`);
+
+    // Clear the request timeout since we're about to respond
+    clearTimeout(timeout);
+
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.warn("[Collector] Response already sent, skipping");
+      return;
     }
 
     if (!combinedMentions.length) {
@@ -363,15 +485,27 @@ async function runCollection(req, res, next) {
     const existingUrlSet = new Set();
 
     if (urls.length) {
-      const existing = await Mention.find({
-        projectId,
-        keyword: keyword.trim(),
-        sourceUrl: { $in: urls },
-      })
-        .select({ sourceUrl: 1 })
-        .lean();
-      for (const e of existing) {
-        if (e.sourceUrl) existingUrlSet.add(e.sourceUrl);
+      try {
+        // Add timeout to MongoDB query
+        const queryPromise = Mention.find({
+          projectId,
+          keyword: keyword.trim(),
+          sourceUrl: { $in: urls },
+        })
+          .select({ sourceUrl: 1 })
+          .lean()
+          .maxTimeMS(10000); // 10 second timeout
+        
+        const queryTimeout = new Promise((resolve) => {
+          setTimeout(() => resolve([]), 10000);
+        });
+        
+        const existing = await Promise.race([queryPromise, queryTimeout]);
+        for (const e of existing) {
+          if (e.sourceUrl) existingUrlSet.add(e.sourceUrl);
+        }
+      } catch (dbError) {
+        console.warn(`[Collector] MongoDB query timeout/error, continuing without deduplication: ${dbError.message}`);
       }
     }
 
@@ -393,20 +527,67 @@ async function runCollection(req, res, next) {
 
     const skippedExisting = dedupedMentions.length - docs.length;
 
+    let insertedCount = 0;
     if (docs.length) {
-      await Mention.insertMany(docs, { ordered: false });
+      try {
+        // Check MongoDB connection before inserting
+        const mongoose = require("mongoose");
+        if (mongoose.connection.readyState !== 1) {
+          console.warn("[Collector] MongoDB not connected, attempting to reconnect...");
+          const { connectMongo } = require("../db/mongo");
+          await connectMongo();
+        }
+        
+        // Add timeout to insert operation
+        const insertPromise = Mention.insertMany(docs, { 
+          ordered: false,
+          maxTimeMS: 30000, // 30 second timeout
+        });
+        
+        const insertTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("MongoDB insert timed out after 30s")), 30000);
+        });
+        
+        await Promise.race([insertPromise, insertTimeout]);
+        insertedCount = docs.length;
+      } catch (dbError) {
+        console.error(`[Collector] Failed to insert mentions to MongoDB: ${dbError.message}`);
+        // Still return success with fetched data, but note the DB error
+        errorsByPlatform["database"] = `Failed to save to database: ${dbError.message}`;
+        insertedCount = 0;
+      }
     }
 
+    const finalDuration = Date.now() - startTime;
+    console.log(`[Collector] ✓ Run complete: inserted ${insertedCount} mentions, skipped ${skippedExisting} duplicates (${finalDuration}ms total)`);
+
+    // Check if response was already sent (timeout or abort)
+    if (res.headersSent) {
+      console.warn("[Collector] Response already sent, skipping");
+      return;
+    }
+
+    clearTimeout(timeout);
     return res.status(200).json({
       projectId,
       keyword: keyword.trim(),
       hoursUsed,
       fetchedByPlatform,
       errorsByPlatform,
-      insertedCount: docs.length,
+      insertedCount,
       skippedExisting,
     });
   } catch (err) {
+    const errorDuration = Date.now() - startTime;
+    console.error(`[Collector] ✗ Run failed after ${errorDuration}ms:`, err.message || err);
+    
+    // Check if response was already sent
+    if (res.headersSent) {
+      console.warn("[Collector] Error occurred but response already sent");
+      return;
+    }
+    
+    clearTimeout(timeout);
     return next(err);
   }
 }

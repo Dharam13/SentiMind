@@ -33,10 +33,16 @@ const env = {
 
   // External API keys
   twitterApiKey: optionalEnv("TWITTER_API_KEY", ""),
+  twitterBearerToken: optionalEnv("TWITTER_BEARER_TOKEN", ""),
   youtubeApiKey: optionalEnv("YOUTUBE_API_KEY", ""),
   newsApiKey: optionalEnv("NEWSAPI_KEY", ""),
   gnewsApiKey: optionalEnv("GNEWS_API_KEY", ""),
   tumblrApiKey: optionalEnv("TUMBLR_API_KEY", ""),
+  
+  // Reddit API credentials
+  redditClientId: optionalEnv("REDDIT_CLIENT_ID", ""),
+  redditClientSecret: optionalEnv("REDDIT_CLIENT_SECRET", ""),
+  redditUserAgent: optionalEnv("REDDIT_USER_AGENT", "SentiMind/1.0"),
 };
 
 module.exports = { env };

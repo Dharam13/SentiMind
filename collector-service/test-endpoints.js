@@ -21,35 +21,35 @@ const endpoints = [
     name: "Reddit", 
     path: `/api/collect/reddit?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
-    timeout: 30000,
+    timeout: 15000,
     description: "Reddit mentions (no API key required)"
   },
   { 
     name: "Twitter", 
     path: `/api/collect/twitter?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
-    timeout: 30000,
+    timeout: 15000,
     description: "Twitter/X mentions via Twitter API.io"
   },
   { 
     name: "YouTube", 
     path: `/api/collect/youtube?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
-    timeout: 30000,
+    timeout: 15000,
     description: "YouTube video mentions"
   },
   { 
     name: "Tumblr", 
     path: `/api/collect/tumblr?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
-    timeout: 30000,
+    timeout: 15000,
     description: "Tumblr blog mentions"
   },
   { 
     name: "News", 
     path: `/api/collect/news?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
-    timeout: 30000,
+    timeout: 15000,
     description: "News articles from multiple providers (with 24h→7d fallback)"
   },
 ];

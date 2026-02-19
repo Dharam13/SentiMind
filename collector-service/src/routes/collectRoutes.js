@@ -3,6 +3,16 @@ const collectController = require("../controllers/collectController");
 
 const router = Router();
 
+// Middleware to log all requests
+router.use((req, res, next) => {
+  console.log(`[Collector Routes] ${req.method} ${req.path} - Body received: ${!!req.body}`);
+  if (req.body && req.method === "POST") {
+    console.log(`[Collector Routes] Body keys:`, Object.keys(req.body));
+    console.log(`[Collector Routes] Body preview:`, JSON.stringify(req.body).substring(0, 200));
+  }
+  next();
+});
+
 // Social media
 router.get("/reddit", collectController.collectReddit);
 router.get("/twitter", collectController.collectTwitter);

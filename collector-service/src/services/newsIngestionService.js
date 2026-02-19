@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { get } = require("../utils/httpClient");
 const { env } = require("../config/env");
 const { resolveHours, getWindowRange } = require("./timeWindow");
 
@@ -31,16 +31,24 @@ async function fetchFromNewsApi({ keyword, limit, hours }) {
     const { start } = getWindowRange(windowHours);
 
     try {
-      const res = await axios.get(NEWS_API_URL, {
-        params: {
-          apiKey: env.newsApiKey,
-          q: keyword,
-          sortBy: "publishedAt",
-          pageSize: Math.min(limit, 100),
-          from: start.toISOString(),
-          language: "en",
+      const res = await get(
+        NEWS_API_URL,
+        {
+          params: {
+            apiKey: env.newsApiKey,
+            q: keyword,
+            sortBy: "publishedAt",
+            pageSize: Math.min(limit, 100),
+            from: start.toISOString(),
+            language: "en",
+          },
         },
-      });
+        {
+          maxRetries: 1,
+          retryDelay: 1000,
+          timeout: 15000,
+        }
+      );
 
       articles = res.data?.articles ?? [];
       finalHoursUsed = windowHours;
@@ -90,14 +98,22 @@ async function fetchFromGNews({ keyword, limit, hours }) {
 
   const effectiveHours = resolveHours("news", hours);
 
-  const res = await axios.get(GNEWS_API_URL, {
-    params: {
-      q: keyword,
-      lang: "en",
-      max: Math.min(limit, 100),
-      apikey: env.gnewsApiKey,
+  const res = await get(
+    GNEWS_API_URL,
+    {
+      params: {
+        q: keyword,
+        lang: "en",
+        max: Math.min(limit, 100),
+        apikey: env.gnewsApiKey,
+      },
     },
-  });
+    {
+      maxRetries: 1,
+      retryDelay: 1000,
+      timeout: 15000,
+    }
+  );
 
   const articles = res.data?.articles ?? [];
 

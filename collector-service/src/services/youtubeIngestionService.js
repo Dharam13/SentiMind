@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { get } = require("../utils/httpClient");
 const { env } = require("../config/env");
 const { resolveHours, getWindowRange } = require("./timeWindow");
 
@@ -19,17 +19,25 @@ async function fetchYouTubeMentions({ keyword, limit = 20, hours }) {
 
   const searchUrl = "https://www.googleapis.com/youtube/v3/search";
 
-  const searchRes = await axios.get(searchUrl, {
-    params: {
-      key: env.youtubeApiKey,
-      q: keyword,
-      part: "snippet",
-      type: "video",
-      order: "date",
-      maxResults: Math.min(limit, 50),
-      publishedAfter: start.toISOString(),
+  const searchRes = await get(
+    searchUrl,
+    {
+      params: {
+        key: env.youtubeApiKey,
+        q: keyword,
+        part: "snippet",
+        type: "video",
+        order: "date",
+        maxResults: Math.min(limit, 50),
+        publishedAfter: start.toISOString(),
+      },
     },
-  });
+    {
+      maxRetries: 1,
+      retryDelay: 1000,
+      timeout: 15000,
+    }
+  );
 
   const items = searchRes.data?.items ?? [];
   if (items.length === 0) {
@@ -41,14 +49,22 @@ async function fetchYouTubeMentions({ keyword, limit = 20, hours }) {
     .filter((id) => typeof id === "string");
 
   const detailsUrl = "https://www.googleapis.com/youtube/v3/videos";
-  const detailsRes = await axios.get(detailsUrl, {
-    params: {
-      key: env.youtubeApiKey,
-      id: videoIds.join(","),
-      part: "snippet,statistics",
-      maxResults: videoIds.length,
+  const detailsRes = await get(
+    detailsUrl,
+    {
+      params: {
+        key: env.youtubeApiKey,
+        id: videoIds.join(","),
+        part: "snippet,statistics",
+        maxResults: videoIds.length,
+      },
     },
-  });
+    {
+      maxRetries: 1,
+      retryDelay: 1000,
+      timeout: 15000,
+    }
+  );
 
   const details = detailsRes.data?.items ?? [];
   const detailMap = new Map(details.map((d) => [d.id, d]));

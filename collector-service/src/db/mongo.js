@@ -55,14 +55,30 @@ async function connectMongo() {
 
   mongoose.connection.on("error", (err) => {
     console.error("MongoDB connection error:", err.message);
+    // Try to reconnect after a delay
+    setTimeout(() => {
+      if (mongoose.connection.readyState === 0) {
+        console.log("🔄 Attempting to reconnect to MongoDB...");
+        mongoose.connect(env.mongoUri, options).catch(() => {
+          // Reconnection will be retried by mongoose automatically
+        });
+      }
+    }, 5000);
   });
 
   mongoose.connection.on("disconnected", () => {
-    console.warn("⚠️  MongoDB disconnected");
+    console.warn("⚠️  MongoDB disconnected - will attempt to reconnect");
   });
 
   mongoose.connection.on("reconnected", () => {
-    console.log("✅ MongoDB reconnected");
+    console.log("✅ MongoDB reconnected successfully");
+  });
+
+  // Handle process termination
+  process.on("SIGINT", async () => {
+    await mongoose.connection.close();
+    console.log("MongoDB connection closed due to app termination");
+    process.exit(0);
   });
 }
 

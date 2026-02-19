@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { get } = require("../utils/httpClient");
 const { env } = require("../config/env");
 const { resolveHours, getWindowRange } = require("./timeWindow");
 
@@ -19,13 +19,21 @@ async function fetchTumblrMentions({ keyword, limit = 20, hours }) {
 
   const url = "https://api.tumblr.com/v2/tagged";
 
-  const res = await axios.get(url, {
-    params: {
-      tag: keyword,
-      api_key: env.tumblrApiKey,
-      limit: Math.min(limit, 50),
+  const res = await get(
+    url,
+    {
+      params: {
+        tag: keyword,
+        api_key: env.tumblrApiKey,
+        limit: Math.min(limit, 50),
+      },
     },
-  });
+    {
+      maxRetries: 1,
+      retryDelay: 1000,
+      timeout: 15000,
+    }
+  );
 
   const posts = res.data?.response ?? [];
 
