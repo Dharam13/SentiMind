@@ -6,7 +6,7 @@
 const axios = require("axios");
 
 const BASE_URL = "http://localhost:8021";
-const TEST_KEYWORD = "nvidia"; // Neutral test keyword
+const TEST_KEYWORD = "tesla"; // Neutral test keyword
 const TEST_PROJECT_ID = 1;
 
 const endpoints = [
@@ -39,11 +39,18 @@ const endpoints = [
     description: "YouTube video mentions"
   },
   { 
-    name: "Tumblr", 
-    path: `/api/collect/tumblr?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
+    name: "Medium", 
+    path: `/api/collect/medium?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
     method: "GET",
     timeout: 15000,
-    description: "Tumblr blog mentions"
+    description: "Medium blog posts via RSS feed (tag)"
+  },
+  { 
+    name: "LinkedIn", 
+    path: `/api/collect/linkedin?keyword=${TEST_KEYWORD}&projectId=${TEST_PROJECT_ID}&limit=5&hours=24`, 
+    method: "GET",
+    timeout: 15000,
+    description: "LinkedIn posts via Google News RSS (site:linkedin.com/posts)"
   },
   { 
     name: "News", 

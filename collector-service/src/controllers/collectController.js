@@ -2,11 +2,12 @@ const { Mention } = require("../models/Mention");
 const { fetchRedditMentions } = require("../services/redditIngestionService");
 const { fetchTwitterMentions } = require("../services/twitterIngestionService");
 const { fetchYouTubeMentions } = require("../services/youtubeIngestionService");
-const { fetchTumblrMentions } = require("../services/tumblrIngestionService");
+const { fetchMediumMentions } = require("../services/mediumIngestionService");
+const { fetchLinkedInMentions } = require("../services/linkedinIngestionService");
 const { fetchNewsMentions } = require("../services/newsIngestionService");
 
 const DEFAULT_SUMMARY_HOURS = 24;
-const DEFAULT_RUN_PLATFORMS = ["reddit", "twitter", "youtube", "tumblr", "news"];
+const DEFAULT_RUN_PLATFORMS = ["reddit", "twitter", "youtube", "medium", "linkedin", "news"];
 
 function getFetchFn(platform) {
   switch (platform) {
@@ -16,8 +17,10 @@ function getFetchFn(platform) {
       return fetchTwitterMentions;
     case "youtube":
       return fetchYouTubeMentions;
-    case "tumblr":
-      return fetchTumblrMentions;
+    case "medium":
+      return fetchMediumMentions;
+    case "linkedin":
+      return fetchLinkedInMentions;
     case "news":
       return fetchNewsMentions;
     default:
@@ -79,8 +82,11 @@ async function collectForPlatform(req, res, next, platform) {
       case "youtube":
         fetchFn = fetchYouTubeMentions;
         break;
-      case "tumblr":
-        fetchFn = fetchTumblrMentions;
+      case "medium":
+        fetchFn = fetchMediumMentions;
+        break;
+      case "linkedin":
+        fetchFn = fetchLinkedInMentions;
         break;
       case "news":
         fetchFn = fetchNewsMentions;
@@ -113,6 +119,7 @@ async function collectForPlatform(req, res, next, platform) {
       publishedAt: m.publishedAt,
       collectedAt: new Date(),
       timeWindowUsed: m.timeWindowUsed ?? hoursUsed,
+      sourceType: m.sourceType || undefined,
       metadata: m.metadata ?? {},
       rawJson: m.rawJson,
     }));
@@ -155,8 +162,12 @@ async function collectYouTube(req, res, next) {
   return collectForPlatform(req, res, next, "youtube");
 }
 
-async function collectTumblr(req, res, next) {
-  return collectForPlatform(req, res, next, "tumblr");
+async function collectMedium(req, res, next) {
+  return collectForPlatform(req, res, next, "medium");
+}
+
+async function collectLinkedIn(req, res, next) {
+  return collectForPlatform(req, res, next, "linkedin");
 }
 
 async function collectNews(req, res, next) {
@@ -247,6 +258,7 @@ async function getProjectSummary(req, res, next) {
         sourceUrl: m.sourceUrl,
         publishedAt: m.publishedAt,
         timeWindowUsed: m.timeWindowUsed,
+        sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
       }));
 
@@ -521,6 +533,7 @@ async function runCollection(req, res, next) {
         publishedAt: m.publishedAt,
         collectedAt: new Date(),
         timeWindowUsed: m.timeWindowUsed ?? hoursUsed,
+        sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
         rawJson: m.rawJson,
       }));
@@ -596,7 +609,8 @@ module.exports = {
   collectReddit,
   collectTwitter,
   collectYouTube,
-  collectTumblr,
+  collectMedium,
+  collectLinkedIn,
   collectNews,
   getProjectSummary,
   runCollection,

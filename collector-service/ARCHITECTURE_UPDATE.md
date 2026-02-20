@@ -142,7 +142,7 @@ GOOGLE_SEARCH_CX=your-google-search-engine-id
 - `GET /api/collect/reddit`
 - `GET /api/collect/twitter`
 - `GET /api/collect/youtube`
-- `GET /api/collect/tumblr`
+- `GET /api/collect/medium`
 - `GET /api/collect/news`
 
 ---

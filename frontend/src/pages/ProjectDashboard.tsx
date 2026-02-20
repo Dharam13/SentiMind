@@ -28,6 +28,10 @@ function platformLabel(platform: string) {
       return "Reddit";
     case "youtube":
       return "YouTube";
+    case "medium":
+      return "Medium";
+    case "linkedin":
+      return "LinkedIn";
     case "tumblr":
       return "Tumblr";
     case "news":
@@ -45,6 +49,10 @@ function platformIcon(platform: string) {
       return "r/";
     case "youtube":
       return "▶";
+    case "medium":
+      return "M";
+    case "linkedin":
+      return "in";
     case "tumblr":
       return "t";
     case "news":
@@ -57,8 +65,8 @@ function platformIcon(platform: string) {
 function isPlatformIncluded(platform: string, filter: SourceFilter) {
   if (filter === "all") return true;
   if (filter === "news") return platform === "news";
-  if (filter === "blogs") return platform === "tumblr";
-  if (filter === "social") return platform === "twitter" || platform === "reddit" || platform === "youtube";
+  if (filter === "blogs") return platform === "medium" || platform === "tumblr";
+  if (filter === "social") return platform === "twitter" || platform === "reddit" || platform === "youtube" || platform === "linkedin";
   return true;
 }
 
@@ -643,6 +651,9 @@ export function ProjectDashboard() {
                                 {platformIcon(m.platform)}
                               </span>
                               <span className="font-medium">{platformLabel(m.platform)}</span>
+                              {m.sourceType === "rss" && (
+                                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">RSS</span>
+                              )}
                               <span className="text-gray-500">•</span>
                               <span className="text-gray-500">
                                 {new Date(m.publishedAt).toLocaleString()}
@@ -681,7 +692,7 @@ export function ProjectDashboard() {
                     Sources
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {["twitter", "reddit", "youtube", "news", "tumblr"].map((p) => (
+                    {["twitter", "reddit", "youtube", "linkedin", "news", "medium"].map((p) => (
                       <div
                         key={p}
                         className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"

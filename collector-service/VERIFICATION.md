@@ -38,7 +38,7 @@
 - `GET /api/collect/youtube` - YouTube mentions
 - `GET /api/collect/wordpress` - WordPress mentions
 - `GET /api/collect/blogger` - Blogger mentions
-- `GET /api/collect/tumblr` - Tumblr mentions
+- `GET /api/collect/medium` - Medium blog posts (RSS feed)
 - `GET /api/collect/news` - NewsAPI mentions
 
 ## 🧪 Testing Instructions

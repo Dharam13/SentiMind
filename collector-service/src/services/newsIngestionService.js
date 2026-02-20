@@ -1,9 +1,35 @@
+const Parser = require("rss-parser");
 const { get } = require("../utils/httpClient");
 const { env } = require("../config/env");
 const { resolveHours, getWindowRange } = require("./timeWindow");
 
 const NEWS_API_URL = "https://newsapi.org/v2/everything";
 const GNEWS_API_URL = "https://gnews.io/api/v4/search";
+const GOOGLE_NEWS_RSS_BASE = "https://news.google.com/rss/search";
+
+const rssParser = new Parser({
+  timeout: 15000,
+  headers: { "User-Agent": "SentiMind-Collector/1.0" },
+});
+
+/** Normalize URL for deduplication (strip tracking params, lowercase host, etc.) */
+function normalizeNewsUrl(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  try {
+    const u = new URL(raw.trim());
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"].forEach((p) => u.searchParams.delete(p));
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return raw.trim();
+  }
+}
+
+/** Normalize title for deduplication (same story from different providers) */
+function normalizeTitle(title) {
+  if (!title || typeof title !== "string") return "";
+  return title.toLowerCase().replace(/\s+/g, " ").trim();
+}
 
 async function fetchFromNewsApi({ keyword, limit, hours }) {
   if (!env.newsApiKey) {
@@ -142,10 +168,60 @@ async function fetchFromGNews({ keyword, limit, hours }) {
   return { mentions, hoursUsed: effectiveHours };
 }
 
+/**
+ * Fetch news from Google News RSS. No time window requirement in our code —
+ * we take whatever the feed returns (feed uses when:7d). No API key needed.
+ */
+async function fetchFromGoogleNewsRss({ keyword, limit }) {
+  const url = `${GOOGLE_NEWS_RSS_BASE}?q=${encodeURIComponent(keyword)}+when:7d&hl=en-US&gl=US&ceid=US:en`;
+
+  let feed;
+  try {
+    feed = await rssParser.parseURL(url);
+  } catch (err) {
+    return { mentions: [], hoursUsed: 168 };
+  }
+
+  const items = feed?.items ?? [];
+  const mentions = items.slice(0, Math.min(limit, 100)).map((item) => {
+    const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
+    const title = item.title || "";
+    const content = item.contentSnippet || item.content || title;
+    const sourceUrl = item.link || "";
+
+    return {
+      platform: "news",
+      keyword,
+      content: (content || title).trim(),
+      author: item.creator || item["dc:creator"] || "",
+      sourceUrl,
+      publishedAt,
+      timeWindowUsed: 168,
+      sourceType: "rss",
+      metadata: {
+        title,
+        snippet: item.contentSnippet || "",
+        link: sourceUrl,
+        provider: "google-news-rss",
+      },
+      rawJson: {
+        title: item.title,
+        link: item.link,
+        pubDate: item.pubDate,
+        contentSnippet: item.contentSnippet,
+        guid: item.guid,
+      },
+    };
+  });
+
+  return { mentions, hoursUsed: 168 };
+}
+
 async function fetchNewsMentions({ keyword, limit = 20, hours }) {
-  const [newsApiResult, gnewsResult] = await Promise.allSettled([
+  const [newsApiResult, gnewsResult, googleRssResult] = await Promise.allSettled([
     fetchFromNewsApi({ keyword, limit, hours }),
     fetchFromGNews({ keyword, limit, hours }),
+    fetchFromGoogleNewsRss({ keyword, limit }),
   ]);
 
   let combined = [];
@@ -161,11 +237,14 @@ async function fetchNewsMentions({ keyword, limit = 20, hours }) {
 
   if (gnewsResult.status === "fulfilled") {
     combined = combined.concat(gnewsResult.value.mentions);
-    if (!hoursUsed) {
-      hoursUsed = gnewsResult.value.hoursUsed;
-    }
+    if (!hoursUsed) hoursUsed = gnewsResult.value.hoursUsed;
   } else if (!lastError) {
     lastError = gnewsResult.reason;
+  }
+
+  if (googleRssResult.status === "fulfilled" && googleRssResult.value.mentions.length) {
+    combined = combined.concat(googleRssResult.value.mentions);
+    if (!hoursUsed) hoursUsed = googleRssResult.value.hoursUsed;
   }
 
   if (combined.length === 0 && lastError) {
@@ -173,18 +252,22 @@ async function fetchNewsMentions({ keyword, limit = 20, hours }) {
   }
 
   const seenUrls = new Set();
+  const seenTitles = new Set();
   const deduped = [];
 
+  const MIN_TITLE_LENGTH_FOR_DEDUPE = 15;
+
   for (const mention of combined) {
-    const url = mention.sourceUrl;
-    if (!url) {
-      deduped.push(mention);
-      continue;
-    }
-    if (seenUrls.has(url)) {
-      continue;
-    }
-    seenUrls.add(url);
+    const normUrl = normalizeNewsUrl(mention.sourceUrl);
+    const rawTitle = mention.metadata?.title || mention.content || "";
+    const normTitle = normalizeTitle(rawTitle);
+    const useTitleDedupe = normTitle.length >= MIN_TITLE_LENGTH_FOR_DEDUPE;
+
+    if (normUrl && seenUrls.has(normUrl)) continue;
+    if (useTitleDedupe && seenTitles.has(normTitle)) continue;
+
+    if (normUrl) seenUrls.add(normUrl);
+    if (useTitleDedupe) seenTitles.add(normTitle);
     deduped.push(mention);
   }
 

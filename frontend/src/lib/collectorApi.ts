@@ -3,7 +3,7 @@ const COLLECTOR_BASE =
   (import.meta.env.VITE_COLLECTOR_API_URL as string) ||
   "http://localhost:8000";
 
-export type Platform = "reddit" | "twitter" | "youtube" | "tumblr" | "news";
+export type Platform = "reddit" | "twitter" | "youtube" | "medium" | "linkedin" | "news";
 
 export interface RunCollectionBody {
   projectId: number;
@@ -43,6 +43,8 @@ export interface SummaryMention {
   sourceUrl?: string;
   publishedAt: string;
   timeWindowUsed: number;
+  /** When "rss", mention was collected via RSS feed (e.g. Medium) */
+  sourceType?: "api" | "rss";
   metadata: Record<string, any>;
 }
 

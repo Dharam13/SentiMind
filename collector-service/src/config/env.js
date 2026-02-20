@@ -27,7 +27,8 @@ const env = {
     reddit: optionalIntEnv("REDDIT_DEFAULT_HOURS", 24),
     twitter: optionalIntEnv("TWITTER_DEFAULT_HOURS", 24),
     youtube: optionalIntEnv("YOUTUBE_DEFAULT_HOURS", 24),
-    tumblr: optionalIntEnv("TUMBLR_DEFAULT_HOURS", 24),
+    medium: optionalIntEnv("MEDIUM_DEFAULT_HOURS", 24),
+    linkedin: optionalIntEnv("LINKEDIN_DEFAULT_HOURS", 24),
     news: optionalIntEnv("NEWS_DEFAULT_HOURS", 24),
   },
 
@@ -37,8 +38,6 @@ const env = {
   youtubeApiKey: optionalEnv("YOUTUBE_API_KEY", ""),
   newsApiKey: optionalEnv("NEWSAPI_KEY", ""),
   gnewsApiKey: optionalEnv("GNEWS_API_KEY", ""),
-  tumblrApiKey: optionalEnv("TUMBLR_API_KEY", ""),
-  
   // Reddit API credentials
   redditClientId: optionalEnv("REDDIT_CLIENT_ID", ""),
   redditClientSecret: optionalEnv("REDDIT_CLIENT_SECRET", ""),

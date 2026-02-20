@@ -20,7 +20,8 @@ const MentionSchema = new mongoose.Schema(
         "reddit",
         "twitter",
         "youtube",
-        "tumblr",
+        "medium",
+        "linkedin",
         "web",
         "news",
       ],
@@ -48,6 +49,11 @@ const MentionSchema = new mongoose.Schema(
     timeWindowUsed: {
       type: Number,
       required: true,
+    },
+    // When set to "rss", this mention was collected via RSS feed (e.g. Medium); otherwise API
+    sourceType: {
+      type: String,
+      enum: ["api", "rss"],
     },
     // Dynamic, platform-specific engagement metadata (views, likes, etc.)
     metadata: {

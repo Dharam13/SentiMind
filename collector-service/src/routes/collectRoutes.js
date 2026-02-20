@@ -18,8 +18,11 @@ router.get("/reddit", collectController.collectReddit);
 router.get("/twitter", collectController.collectTwitter);
 router.get("/youtube", collectController.collectYouTube);
 
-// Blogs
-router.get("/tumblr", collectController.collectTumblr);
+// Blogs (Medium via RSS)
+router.get("/medium", collectController.collectMedium);
+
+// Social (LinkedIn via Google News RSS)
+router.get("/linkedin", collectController.collectLinkedIn);
 
 // News
 router.get("/news", collectController.collectNews);
