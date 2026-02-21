@@ -1,33 +1,26 @@
-const Parser = require("rss-parser");
-const parser = new Parser();
+require("dotenv").config();
+const axios = require("axios");
 
-// 🔥 Change keyword here
-const KEYWORD = "iphone";
+const API_KEY = process.env.NEWSDATA_API_KEY;
 
-async function fetchLinkedInViaGoogleNews() {
+async function testNewsData() {
   try {
-    // Google News RSS with LinkedIn site filter
-    const url = `https://news.google.com/rss/search?q=site:linkedin.com/posts+${KEYWORD}&hl=en-IN&gl=IN&ceid=IN:en`;
-
-    const feed = await parser.parseURL(url);
-
-    console.log("====== LINKEDIN MENTIONS (via Google News) ======");
-
-    if (feed.items.length === 0) {
-      console.log("No LinkedIn mentions found.");
-      return;
-    }
-
-    feed.items.forEach((item, index) => {
-      console.log(`\nPost ${index + 1}`);
-      console.log("Title:", item.title);
-      console.log("Link:", item.link);
-      console.log("Published:", item.pubDate);
+    const response = await axios.get("https://newsdata.io/api/1/news", {
+      params: {
+        apikey: API_KEY,
+        q: "Tesla",          // change keyword here
+        language: "en",
+        country: "in",       // optional
+      },
     });
 
+    console.log("Status:", response.status);
+    console.log("Total Results:", response.data.totalResults);
+    console.log("Sample Article:\n", response.data.results[0]);
+
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error:", error.response?.data || error.message);
   }
 }
 
-fetchLinkedInViaGoogleNews();
+testNewsData();

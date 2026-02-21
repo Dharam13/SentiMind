@@ -38,6 +38,7 @@ const env = {
   youtubeApiKey: optionalEnv("YOUTUBE_API_KEY", ""),
   newsApiKey: optionalEnv("NEWSAPI_KEY", ""),
   gnewsApiKey: optionalEnv("GNEWS_API_KEY", ""),
+  newsdataApiKey: optionalEnv("NEWSDATA_API_KEY", ""),
   // Reddit API credentials
   redditClientId: optionalEnv("REDDIT_CLIENT_ID", ""),
   redditClientSecret: optionalEnv("REDDIT_CLIENT_SECRET", ""),
