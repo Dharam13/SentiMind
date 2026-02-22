@@ -42,3 +42,5 @@ SentiMind/
 ├── analytics-service/ # Analytics aggregation service
 └── queue/            # Queue configuration
 ```
+
+added multiple api for news data 
