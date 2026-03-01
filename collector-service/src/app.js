@@ -85,6 +85,8 @@ app.use(errorHandler);
 async function start() {
   try {
     await connectMongo();
+    const { startSentimentProcessor } = require("./services/sentimentProcessor");
+    startSentimentProcessor();
     const server = app.listen(env.port, () => {
       // Set server timeouts to handle long-running requests
       server.timeout = 180000; // 3 minutes

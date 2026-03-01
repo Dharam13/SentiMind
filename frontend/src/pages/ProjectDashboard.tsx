@@ -153,29 +153,46 @@ export function ProjectDashboard() {
     }));
   }, [summary]);
 
-  // Generate dummy sentiment data similar to the image
+  // Sentiment chart from stored MongoDB data (group by date, count by sentiment.label)
   const sentimentData = useMemo(() => {
-    const now = Date.now();
-    const points = 24;
-    const data = [];
-    for (let i = points - 1; i >= 0; i--) {
-      const t = new Date(now - i * 60 * 60 * 1000);
-      const basePositive = 52 + Math.sin(i * 0.4) * 12 + Math.random() * 6;
-      const baseNegative = 25 + Math.sin(i * 0.3) * 5 + Math.random() * 4;
-      const neutral = Math.max(0, 100 - basePositive - baseNegative);
-      data.push({
-        time: t.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
-        positive: Math.round(basePositive * 10) / 10,
-        neutral: Math.round(neutral * 10) / 10,
-        negative: Math.round(baseNegative * 10) / 10,
-      });
+    const list = summary?.mentions ?? [];
+    const withSentiment = list.filter(
+      (m) => m.sentimentStatus === "completed" && m.sentiment?.label
+    );
+    if (withSentiment.length === 0) {
+      return [];
     }
+    const byDate = new Map<
+      string,
+      { date: string; positive: number; neutral: number; negative: number }
+    >();
+    for (const m of withSentiment) {
+      const d = m.publishedAt
+        ? new Date(m.publishedAt).toISOString().slice(0, 10)
+        : "";
+      if (!d) continue;
+      const row = byDate.get(d) || {
+        date: d,
+        positive: 0,
+        neutral: 0,
+        negative: 0,
+      };
+      const label = (m.sentiment!.label || "").toLowerCase();
+      if (label === "positive") row.positive += 1;
+      else if (label === "negative") row.negative += 1;
+      else row.neutral += 1;
+      byDate.set(d, row);
+    }
+    return Array.from(byDate.values()).sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+  }, [summary]);
+
+  const sentimentChartData = useMemo(() => {
+    const data = sentimentData;
+    if (data.length === 0) return [];
     return data;
-  }, []);
+  }, [sentimentData]);
 
   const byPlatform = useMemo(() => {
     const pts = summary?.byPlatform ?? [];
@@ -513,9 +530,16 @@ export function ProjectDashboard() {
                             animationEasing="ease-out"
                           />
                         </AreaChart>
+                      ) : sentimentChartData.length === 0 ? (
+                          <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-senti-border bg-senti-dark/40 p-6 text-center">
+                            <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
+                            </p>
+                          </div>
                       ) : (
                         <AreaChart
-                          data={sentimentData}
+                          data={sentimentChartData}
                           margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                         >
                           <defs>
@@ -534,7 +558,7 @@ export function ProjectDashboard() {
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
                           <XAxis
-                            dataKey="time"
+                            dataKey="date"
                             stroke="#6b7280"
                             tick={{ fill: "#9ca3af", fontSize: 12 }}
                             axisLine={{ stroke: "#2a2a4a" }}
@@ -543,7 +567,6 @@ export function ProjectDashboard() {
                             stroke="#6b7280"
                             tick={{ fill: "#9ca3af", fontSize: 12 }}
                             axisLine={{ stroke: "#2a2a4a" }}
-                            domain={[0, 100]}
                             tickFormatter={(v) => `${v}`}
                           />
                           <Tooltip
@@ -553,8 +576,8 @@ export function ProjectDashboard() {
                               borderRadius: "8px",
                             }}
                             labelStyle={{ color: "#fff" }}
-                            formatter={(value: number) => [value.toFixed(1), ""]}
-                            labelFormatter={(label) => `Time: ${label}`}
+                            formatter={(value: number) => [Number(value), ""]}
+                            labelFormatter={(label) => `Date: ${label}`}
                           />
                           <Legend
                             wrapperStyle={{ paddingTop: 12 }}
@@ -640,7 +663,16 @@ export function ProjectDashboard() {
                     </div>
                   ) : (
                     <ul className="max-h-[320px] space-y-2 overflow-auto pr-1">
-                      {recentMentions.slice(0, 30).map((m) => (
+                      {recentMentions.slice(0, 50).map((m) => {
+                        const label = m.sentimentStatus === "completed" && m.sentiment?.label
+                          ? m.sentiment.label
+                          : null;
+                        const displayContent =
+                          (m.content || "").trim() ||
+                          (m.metadata?.title && typeof m.metadata.title === "string"
+                            ? m.metadata.title
+                            : "No content");
+                        return (
                         <li
                           key={m.id}
                           className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"
@@ -659,27 +691,42 @@ export function ProjectDashboard() {
                                 {new Date(m.publishedAt).toLocaleString()}
                               </span>
                             </span>
-                            {m.sourceUrl ? (
-                              <a
-                                href={m.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-gray-400 hover:text-white"
-                              >
-                                Open ↗
-                              </a>
-                            ) : null}
+                            <span className="flex items-center gap-2">
+                              {label && (
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                    label.toLowerCase() === "positive"
+                                      ? "bg-emerald-500/20 text-emerald-300"
+                                      : label.toLowerCase() === "negative"
+                                        ? "bg-red-500/20 text-red-300"
+                                        : "bg-gray-500/20 text-gray-300"
+                                  }`}
+                                >
+                                  {label}
+                                </span>
+                              )}
+                              {m.sourceUrl ? (
+                                <a
+                                  href={m.sourceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-gray-400 hover:text-white"
+                                >
+                                  Open ↗
+                                </a>
+                              ) : null}
+                            </span>
                           </div>
                           <div className="text-sm text-gray-200">
-                            {(m.content || "").trim() || "No content"}
+                            {displayContent}
                           </div>
-                          {(m.author || m.metadata?.title) && (
+                          {(m.author || m.metadata?.title) && (m.content || "").trim() && (
                             <div className="mt-2 text-xs text-gray-500">
                               {m.author ? `By ${m.author}` : m.metadata?.title}
                             </div>
                           )}
                         </li>
-                      ))}
+                      ); })}
                     </ul>
                   )}
                 </div>

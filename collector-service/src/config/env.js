@@ -43,6 +43,11 @@ const env = {
   redditClientId: optionalEnv("REDDIT_CLIENT_ID", ""),
   redditClientSecret: optionalEnv("REDDIT_CLIENT_SECRET", ""),
   redditUserAgent: optionalEnv("REDDIT_USER_AGENT", "SentiMind/1.0"),
+
+  // Sentiment Analysis microservice (Python)
+  sentimentServiceUrl: optionalEnv("SENTIMENT_SERVICE_URL", "http://localhost:8030").replace(/\/$/, ""),
+  sentimentPollIntervalMs: optionalIntEnv("SENTIMENT_POLL_INTERVAL_MS", 30_000),
+  sentimentBatchSize: optionalIntEnv("SENTIMENT_BATCH_SIZE", 10),
 };
 
 module.exports = { env };

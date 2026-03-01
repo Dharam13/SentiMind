@@ -144,6 +144,28 @@ app.use(
   })
 );
 
+app.use(
+  "/api/sentiment",
+  createProxyMiddleware({
+    target: env.sentimentServiceUrl,
+    changeOrigin: true,
+    pathRewrite: { "^/api/sentiment": "" },
+    timeout: 30000,
+    proxyTimeout: 30000,
+    on: {
+      proxyReq(proxyReq, req) {
+        if (req.headers.origin) proxyReq.setHeader("Origin", req.headers.origin);
+      },
+      error(err, req, res) {
+        console.error("[gateway] sentiment proxy error:", err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: "Sentiment service unavailable" });
+        }
+      },
+    },
+  })
+);
+
 // Parse JSON ONLY for non-proxy routes (like /health)
 // Proxy routes handle raw body streams automatically
 app.use(express.json({ limit: "10mb" }));
@@ -167,6 +189,7 @@ const server = app.listen(env.port, () => {
   console.log(`   Auth:   http://localhost:${env.port}/auth/* -> ${env.authServiceUrl}`);
   console.log(`   Projects: http://localhost:${env.port}/projects/* -> ${env.authServiceUrl}`);
   console.log(`   Collector: http://localhost:${env.port}/api/collect/* -> ${env.collectorServiceUrl}`);
+  console.log(`   Sentiment: http://localhost:${env.port}/api/sentiment/* -> ${env.sentimentServiceUrl}`);
   console.log("=".repeat(60) + "\n");
 });
 

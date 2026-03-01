@@ -8,6 +8,7 @@ const axios = require("axios");
 // Keep per-request budgets small so full collector runs don't hang the UI.
 const DEFAULT_TIMEOUT = 15000; // 15 seconds
 const DEFAULT_MAX_RETRIES = 1; // initial attempt + 1 retry
+const DEFAULT_RETRY_DELAY = 1000; // 1 second
 
 /**
  * Check if an error is retryable
@@ -175,4 +176,5 @@ module.exports = {
   isRetryableError,
   DEFAULT_TIMEOUT,
   DEFAULT_MAX_RETRIES,
+  DEFAULT_RETRY_DELAY,
 };

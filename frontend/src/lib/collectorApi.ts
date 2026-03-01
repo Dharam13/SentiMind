@@ -46,6 +46,17 @@ export interface SummaryMention {
   /** When "rss", mention was collected via RSS feed (e.g. Medium) */
   sourceType?: "api" | "rss";
   metadata: Record<string, any>;
+  /** Set after sentiment job runs */
+  sentimentStatus?: "pending" | "completed" | "failed";
+  sentiment?: {
+    vader_score?: number;
+    distilbert_score?: number;
+    final_score?: number;
+    label?: string;
+    confidence?: number;
+    processed_text?: string;
+    analyzedAt?: string;
+  };
 }
 
 export interface ProjectSummaryResponse {

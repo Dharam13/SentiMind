@@ -122,6 +122,7 @@ async function collectForPlatform(req, res, next, platform) {
       sourceType: m.sourceType || undefined,
       metadata: m.metadata ?? {},
       rawJson: m.rawJson,
+      sentimentStatus: "pending",
     }));
 
     await Mention.insertMany(docs, { ordered: false });
@@ -243,11 +244,15 @@ async function getProjectSummary(req, res, next) {
     );
 
     const slimMentions = [...mentions]
-      .sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      )
-      .slice(0, 200)
+      .sort((a, b) => {
+        // Prioritize analyzed (completed) first, then pending, then failed
+        const order = { completed: 0, pending: 1, failed: 2 };
+        const aOrder = order[a.sentimentStatus] ?? 1;
+        const bOrder = order[b.sentimentStatus] ?? 1;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      })
+      .slice(0, 500)
       .map((m) => ({
         id: String(m._id),
         projectId: m.projectId,
@@ -260,6 +265,8 @@ async function getProjectSummary(req, res, next) {
         timeWindowUsed: m.timeWindowUsed,
         sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
+        sentimentStatus: m.sentimentStatus,
+        sentiment: m.sentiment,
       }));
 
     return res.status(200).json({
@@ -536,6 +543,7 @@ async function runCollection(req, res, next) {
         sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
         rawJson: m.rawJson,
+        sentimentStatus: "pending",
       }));
 
     const skippedExisting = dedupedMentions.length - docs.length;
