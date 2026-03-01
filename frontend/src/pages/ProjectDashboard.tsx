@@ -92,9 +92,28 @@ export function ProjectDashboard() {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Start collapsed on mobile, expand on desktop
   const [profileFirstName, setProfileFirstName] = useState(user?.firstName ?? "");
   const [profileLastName, setProfileLastName] = useState(user?.lastName ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Initialize sidebar state based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        setSidebarCollapsed(false); // Expand on desktop
+      } else {
+        setSidebarCollapsed(true); // Collapse on mobile
+      }
+    };
+
+    // Set initial state
+    handleResize();
+    
+    // Listen for resize events
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -253,92 +272,190 @@ export function ProjectDashboard() {
     (user.firstName?.[0] ?? "").toUpperCase() + (user.lastName?.[0] ?? "").toUpperCase();
 
   return (
-    <div className="min-h-screen bg-senti-dark text-white">
+    <div className="min-h-screen bg-senti-dark text-senti-text">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
 
       <div className="relative flex min-h-screen">
+        {/* Mobile Sidebar Overlay */}
+        {!sidebarCollapsed && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarCollapsed(true)}
+          />
+        )}
+        
         {/* Sidebar */}
-        <aside className="hidden w-72 flex-shrink-0 border-r border-senti-border bg-senti-card/40 backdrop-blur md:flex md:flex-col">
-          <div className="flex h-16 items-center justify-between border-b border-senti-border px-6">
-            <Link
-              to="/projects"
-              className="bg-gradient-to-r from-senti-purple to-senti-blue bg-clip-text text-lg font-semibold text-transparent"
+        <aside className={`fixed md:static flex-shrink-0 border-r border-senti-border bg-senti-card/40 backdrop-blur flex flex-col transform transition-all duration-500 ease-in-out z-50 md:z-auto ${
+          sidebarCollapsed 
+            ? 'w-16 -translate-x-full md:translate-x-0' 
+            : 'w-72 translate-x-0'
+        } h-full md:h-auto`}>
+          {/* Desktop Sidebar Toggle - Top Position */}
+          <div className="hidden md:block border-b border-senti-border">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-full h-12 flex items-center justify-between px-6 hover:bg-senti-border/20 transition-colors group cursor-pointer"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              Sentimind
-            </Link>
-            <span className="rounded-full bg-senti-purple/15 px-2 py-0.5 text-[10px] font-semibold text-senti-purple">
-              Dashboard
-            </span>
+              {!sidebarCollapsed && (
+                <span className="text-xs font-semibold text-senti-muted uppercase tracking-wide">
+                  Menu
+                </span>
+              )}
+              <svg 
+                className={`w-4 h-4 text-senti-muted transition-all duration-300 ease-in-out group-hover:text-senti-text ${
+                  sidebarCollapsed ? 'rotate-0' : 'rotate-90'
+                }`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Logo/Brand Section */}
+          <div className="flex h-16 items-center justify-center border-b border-senti-border px-6">
+            {!sidebarCollapsed ? (
+              <div className="flex items-center justify-between w-full">
+                <Link
+                  to="/projects"
+                  className="bg-gradient-to-r from-senti-purple to-senti-blue bg-clip-text text-lg font-semibold text-transparent"
+                >
+                  Sentimind
+                </Link>
+                <span className="rounded-full bg-senti-purple/15 px-2 py-0.5 text-[10px] font-semibold text-senti-purple">
+                  Dashboard
+                </span>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-senti-purple to-senti-blue bg-clip-text text-lg font-semibold text-transparent">
+                S
+              </div>
+            )}
           </div>
 
-          <nav className="flex-1 px-3 py-4 text-sm">
-            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Workspace
-            </div>
-            <div className="mt-2 space-y-1">
+          <nav className="flex-1 px-3 py-4 text-sm overflow-hidden">
+            {!sidebarCollapsed && (
+              <div className="px-2 text-xs font-semibold uppercase tracking-wide text-senti-muted transition-opacity duration-300">
+                Workspace
+              </div>
+            )}
+            <div className={`transition-all duration-300 ${sidebarCollapsed ? "mt-2 space-y-2" : "mt-2 space-y-1"}`}>
               {(
                 [
-                  ["mentions", "Mentions"],
-                  ["summary", "Summary"],
-                  ["analysis", "Analysis"],
-                  ["sources", "Sources"],
-                  ["influencers", "Influencers"],
-                  ["comparison", "Comparison"],
-                ] as Array<[NavItem, string]>
-              ).map(([key, label]) => (
+                  ["mentions", "Mentions", "📊"],
+                  ["summary", "Summary", "📋"],
+                  ["analysis", "Analysis", "🔍"],
+                  ["sources", "Sources", "📰"],
+                  ["influencers", "Influencers", "👥"],
+                  ["comparison", "Comparison", "⚖️"],
+                ] as Array<[NavItem, string, string]>
+              ).map(([key, label, icon]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setNav(key)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
+                  className={`flex w-full items-center ${
+                    sidebarCollapsed ? 'justify-center p-3' : 'justify-between px-3 py-2'
+                  } rounded-lg text-left transition-all duration-200 ease-in-out ${
                     nav === key
-                      ? "bg-senti-purple/15 text-gray-100"
-                      : "text-gray-400 hover:bg-senti-card/40 hover:text-gray-100"
-                  }`}
+                      ? "bg-senti-purple/15 text-senti-text shadow-sm"
+                      : "text-senti-muted hover:bg-senti-card/40 hover:text-senti-text"
+                  } ${sidebarCollapsed ? 'hover:scale-105' : ''}`}
+                  title={sidebarCollapsed ? label : undefined}
                 >
-                  <span>{label}</span>
-                  <span className="text-xs text-gray-500">›</span>
+                  {sidebarCollapsed ? (
+                    <span className="text-lg">{icon}</span>
+                  ) : (
+                    <>
+                      <span>{label}</span>
+                      <svg 
+                        className={`w-3 h-3 text-senti-muted transition-all duration-200 ease-in-out ${
+                          nav === key ? 'rotate-90' : 'rotate-0'
+                        }`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               ))}
             </div>
 
-            <div className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Reports
-            </div>
-            <div className="mt-2 space-y-1">
-              {["Email reports", "PDF report", "Excel export", "Infographic"].map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-gray-500 hover:bg-senti-card/30"
-                >
-                  <span>{label}</span>
-                  <span className="text-[10px] text-gray-600">soon</span>
-                </button>
-              ))}
-            </div>
+            {!sidebarCollapsed && (
+              <div className="transition-all duration-300 opacity-100">
+                <div className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-senti-muted">
+                  Reports
+                </div>
+                <div className="mt-2 space-y-1">
+                  {[
+                    ["Email reports", "📧"],
+                    ["PDF report", "📄"],
+                    ["Excel export", "📊"],
+                    ["Infographic", "🎨"],
+                  ].map(([label, iconItem]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      disabled
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-senti-muted/70 hover:bg-senti-card/20 cursor-not-allowed transition-colors duration-200"
+                    >
+                      <span>{label}</span>
+                      <span className="text-[10px] text-gray-600">soon</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </nav>
         </aside>
 
-        {/* Main */}
-        <div className="flex min-h-screen flex-1 flex-col">
+        {/* Main Content Area */}
+        <div className="flex min-h-screen flex-1 flex-col transition-all duration-500 ease-in-out">
           {/* Top bar - z-30 so header and dropdown sit above content */}
           <header className="relative z-30 flex h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-senti-border bg-senti-dark/95 px-4 backdrop-blur md:px-6">
-            <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Project
-              </div>
-              <div className="truncate text-lg font-semibold text-gray-50">
-                {loadingProject ? "Loading…" : project?.primaryKeyword ?? "Unknown project"}
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Mobile Menu Toggle */}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="flex md:hidden items-center justify-center w-9 h-9 rounded-lg hover:bg-senti-border/20 transition-colors"
+                title="Toggle menu"
+              >
+                <svg 
+                  className="w-5 h-5 text-senti-muted"
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              </button>
+              
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-senti-muted">
+                  Project
+                </div>
+                <div className="truncate text-lg font-semibold text-senti-text">
+                  {loadingProject ? "Loading…" : project?.primaryKeyword ?? "Unknown project"}
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <select
                 value={hours}
                 onChange={(e) => setHours(parseInt(e.target.value, 10))}
-                className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-2 text-xs text-gray-100 focus:border-senti-purple focus:outline-none"
+                className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-2 text-xs text-senti-text focus:border-senti-purple focus:outline-none"
               >
                 <option value={24}>Last 24h</option>
                 <option value={168}>Last 7d</option>
@@ -353,7 +470,20 @@ export function ProjectDashboard() {
                 {running ? "Running…" : "Run"}
               </button>
 
-              <div ref={userMenuRef} className="relative ml-2">
+              {/* Quick Logout Button */}
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="inline-flex items-center gap-2 rounded-xl border border-senti-border/50 bg-senti-card/40 px-3 py-2 text-xs font-medium text-senti-muted hover:text-senti-text hover:bg-senti-border/40 hover:border-senti-border transition-all duration-200"
+                title="Logout"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+
+              <div ref={userMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -382,7 +512,7 @@ export function ProjectDashboard() {
                           setShowUserMenu(false);
                           setShowProfile(true);
                         }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-100 hover:bg-senti-card"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-senti-text hover:bg-senti-card"
                       >
                         Profile
                       </button>
@@ -419,7 +549,7 @@ export function ProjectDashboard() {
                 <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4 md:p-6">
                   <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-senti-muted">
                         Overview
                       </div>
                       <div className="mb-2 flex gap-2">
@@ -428,8 +558,8 @@ export function ProjectDashboard() {
                           onClick={() => setGraphTab("mentions-reach")}
                           className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
                             graphTab === "mentions-reach"
-                              ? "bg-senti-purple/20 text-gray-100"
-                              : "text-gray-400 hover:text-gray-200"
+                              ? "bg-senti-purple/20 text-senti-text"
+                              : "text-senti-muted hover:text-senti-text/90"
                           }`}
                         >
                           Mentions & Reach
@@ -439,20 +569,22 @@ export function ProjectDashboard() {
                           onClick={() => setGraphTab("sentiment")}
                           className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
                             graphTab === "sentiment"
-                              ? "bg-senti-purple/20 text-gray-100"
-                              : "text-gray-400 hover:text-gray-200"
+                              ? "bg-senti-purple/20 text-senti-text"
+                              : "text-senti-muted hover:text-senti-text/90"
                           }`}
                         >
                           Sentiment
                         </button>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-senti-muted">
                       {loadingSummary ? "Loading…" : `${summary?.totalMentions ?? 0} mentions`}
                     </div>
                   </div>
 
-                  <div className="h-[320px] w-full">
+                  <div className="h-[320px] w-full relative">
+                    {/* Subtle dark overlay for neon enhancement */}
+                    <div className="absolute inset-0 bg-black/10 dark:bg-black/20 rounded-lg pointer-events-none" />
                     <ResponsiveContainer width="100%" height="100%">
                       {graphTab === "mentions-reach" ? (
                         <AreaChart
@@ -461,13 +593,27 @@ export function ProjectDashboard() {
                         >
                           <defs>
                             <linearGradient id="mentionsFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6} />
+                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.1} />
                             </linearGradient>
                             <linearGradient id="reachFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.25} />
-                              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.5} />
+                              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.1} />
                             </linearGradient>
+                            <filter id="glowMentions">
+                              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                              <feMerge> 
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                            <filter id="glowReach">
+                              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                              <feMerge> 
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
                           <XAxis
@@ -495,8 +641,9 @@ export function ProjectDashboard() {
                             dataKey="mentions"
                             name="Mentions"
                             stroke="#8b5cf6"
-                            strokeWidth={2}
+                            strokeWidth={3}
                             fill="url(#mentionsFill)"
+                            filter="url(#glowMentions)"
                             isAnimationActive
                             animationDuration={900}
                             animationEasing="ease-out"
@@ -506,8 +653,9 @@ export function ProjectDashboard() {
                             dataKey="reach"
                             name="Reach (proxy)"
                             stroke="#38bdf8"
-                            strokeWidth={2}
+                            strokeWidth={3}
                             fill="url(#reachFill)"
+                            filter="url(#glowReach)"
                             isAnimationActive
                             animationDuration={900}
                             animationEasing="ease-out"
@@ -520,17 +668,38 @@ export function ProjectDashboard() {
                         >
                           <defs>
                             <linearGradient id="positiveFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.6} />
+                              <stop offset="100%" stopColor="#22c55e" stopOpacity={0.1} />
                             </linearGradient>
                             <linearGradient id="neutralFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#6b7280" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#6b7280" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#6b7280" stopOpacity={0.5} />
+                              <stop offset="100%" stopColor="#6b7280" stopOpacity={0.1} />
                             </linearGradient>
                             <linearGradient id="negativeFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.6} />
+                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0.1} />
                             </linearGradient>
+                            <filter id="glowPositive">
+                              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                              <feMerge> 
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                            <filter id="glowNeutral">
+                              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                              <feMerge> 
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                            <filter id="glowNegative">
+                              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                              <feMerge> 
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
                           <XAxis
@@ -559,7 +728,7 @@ export function ProjectDashboard() {
                           <Legend
                             wrapperStyle={{ paddingTop: 12 }}
                             formatter={(value) => (
-                              <span className="text-sm text-gray-300">{value}</span>
+                              <span className="text-sm text-senti-text/80">{value}</span>
                             )}
                             iconType="circle"
                             iconSize={8}
@@ -569,8 +738,9 @@ export function ProjectDashboard() {
                             dataKey="positive"
                             name="Positive"
                             stroke="#22c55e"
-                            strokeWidth={2}
+                            strokeWidth={3}
                             fill="url(#positiveFill)"
+                            filter="url(#glowPositive)"
                             isAnimationActive
                             animationDuration={1000}
                             animationEasing="ease-out"
@@ -580,8 +750,9 @@ export function ProjectDashboard() {
                             dataKey="neutral"
                             name="Neutral"
                             stroke="#6b7280"
-                            strokeWidth={2}
+                            strokeWidth={3}
                             fill="url(#neutralFill)"
+                            filter="url(#glowNeutral)"
                             isAnimationActive
                             animationDuration={1000}
                             animationEasing="ease-out"
@@ -591,8 +762,9 @@ export function ProjectDashboard() {
                             dataKey="negative"
                             name="Negative"
                             stroke="#ef4444"
-                            strokeWidth={2}
+                            strokeWidth={3}
                             fill="url(#negativeFill)"
+                            filter="url(#glowNegative)"
                             isAnimationActive
                             animationDuration={1000}
                             animationEasing="ease-out"
@@ -606,16 +778,16 @@ export function ProjectDashboard() {
                 <div className="min-h-0 rounded-2xl border border-senti-border bg-senti-card/70 p-4 md:p-6">
                   <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-senti-muted">
                         Feed
                       </div>
-                      <div className="text-lg font-semibold text-gray-50">Recent mentions</div>
+                      <div className="text-lg font-semibold text-senti-text">Recent mentions</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <select
                         value={sourceFilter}
                         onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-                        className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-1.5 text-xs text-gray-100 focus:border-senti-purple focus:outline-none"
+                        className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-1.5 text-xs text-senti-text focus:border-senti-purple focus:outline-none"
                       >
                         <option value="all">All sources</option>
                         <option value="social">Social Media</option>
@@ -624,7 +796,7 @@ export function ProjectDashboard() {
                       </select>
                       <Link
                         to="/projects"
-                        className="text-xs font-medium text-gray-400 hover:text-gray-100"
+                        className="text-xs font-medium text-senti-muted hover:text-senti-text"
                       >
                         Back to projects
                       </Link>
@@ -632,10 +804,10 @@ export function ProjectDashboard() {
                   </div>
 
                   {loadingSummary ? (
-                    <div className="py-8 text-center text-sm text-gray-400">Loading mentions…</div>
+                    <div className="py-8 text-center text-sm text-senti-muted">Loading mentions…</div>
                   ) : recentMentions.length === 0 ? (
-                    <div className="rounded-xl bg-senti-dark/60 p-4 text-sm text-gray-400">
-                      No mentions in this time window. Click <span className="text-gray-200">Run</span>{" "}
+                    <div className="rounded-xl bg-senti-dark/60 p-4 text-sm text-senti-muted">
+                      No mentions in this time window. Click <span className="text-senti-text/90">Run</span>{" "}
                       to collect fresh data.
                     </div>
                   ) : (
@@ -646,7 +818,7 @@ export function ProjectDashboard() {
                           className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"
                         >
                           <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <span className="inline-flex items-center gap-2 text-gray-300">
+                            <span className="inline-flex items-center gap-2 text-senti-text/80">
                               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-senti-purple/20 px-1 text-[11px] font-semibold text-senti-purple">
                                 {platformIcon(m.platform)}
                               </span>
@@ -654,8 +826,8 @@ export function ProjectDashboard() {
                               {m.sourceType === "rss" && (
                                 <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">RSS</span>
                               )}
-                              <span className="text-gray-500">•</span>
-                              <span className="text-gray-500">
+                              <span className="text-senti-muted">•</span>
+                              <span className="text-senti-muted">
                                 {new Date(m.publishedAt).toLocaleString()}
                               </span>
                             </span>
@@ -664,17 +836,17 @@ export function ProjectDashboard() {
                                 href={m.sourceUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-gray-400 hover:text-white"
+                                className="text-senti-muted hover:text-white"
                               >
                                 Open ↗
                               </a>
                             ) : null}
                           </div>
-                          <div className="text-sm text-gray-200">
+                          <div className="text-sm text-senti-text/90">
                             {(m.content || "").trim() || "No content"}
                           </div>
                           {(m.author || m.metadata?.title) && (
-                            <div className="mt-2 text-xs text-gray-500">
+                            <div className="mt-2 text-xs text-senti-muted">
                               {m.author ? `By ${m.author}` : m.metadata?.title}
                             </div>
                           )}
@@ -688,7 +860,7 @@ export function ProjectDashboard() {
               {/* Right rail */}
               <aside className="flex flex-col gap-4">
                 <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4">
-                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-senti-muted">
                     Sources
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -697,44 +869,44 @@ export function ProjectDashboard() {
                         key={p}
                         className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"
                       >
-                        <div className="mb-1 flex items-center justify-between text-xs text-gray-400">
+                        <div className="mb-1 flex items-center justify-between text-xs text-senti-muted">
                           <span className="inline-flex items-center gap-2">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-senti-card/60 text-[12px] font-semibold text-gray-100">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-senti-card/60 text-[12px] font-semibold text-senti-text">
                               {platformIcon(p)}
                             </span>
                             {platformLabel(p)}
                           </span>
                         </div>
-                        <div className="text-lg font-semibold text-gray-50">
+                        <div className="text-lg font-semibold text-senti-text">
                           {byPlatform.get(p) ?? 0}
                         </div>
-                        <div className="text-[11px] text-gray-500">mentions</div>
+                        <div className="text-[11px] text-senti-muted">mentions</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-senti-muted">
                     Status
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2">
-                      <span className="text-gray-400">Collector</span>
-                      <span className="text-gray-100">
+                      <span className="text-senti-muted">Collector</span>
+                      <span className="text-senti-text">
                         {running ? "Running…" : "Idle"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2">
-                      <span className="text-gray-400">Sentiment</span>
-                      <span className="text-gray-100">Next milestone</span>
+                      <span className="text-senti-muted">Sentiment</span>
+                      <span className="text-senti-text">Next milestone</span>
                     </div>
                   </div>
                 </div>
 
                 {nav !== "mentions" && (
-                  <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4 text-sm text-gray-400">
-                    <div className="font-semibold text-gray-100">Coming soon</div>
+                  <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4 text-sm text-senti-muted">
+                    <div className="font-semibold text-senti-text">Coming soon</div>
                     <div className="mt-1">
                       This section will be enabled as we add sentiment scoring, sources analysis,
                       influencers, and competitive comparison.
@@ -749,16 +921,16 @@ export function ProjectDashboard() {
 
       {/* Profile modal */}
       {showProfile && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-senti-dark/80 px-4">
           <div className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/95 p-6 shadow-2xl">
             <h2 className="mb-1 text-lg font-semibold text-white">Profile settings</h2>
-            <p className="mb-4 text-sm text-gray-400">
+            <p className="mb-4 text-sm text-senti-muted">
               Update your name details. Your email is fixed for this account.
             </p>
             <form onSubmit={handleSaveProfile} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                  <label className="mb-1 block text-xs font-medium text-senti-text/80">
                     First name
                   </label>
                   <input
@@ -770,7 +942,7 @@ export function ProjectDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                  <label className="mb-1 block text-xs font-medium text-senti-text/80">
                     Last name
                   </label>
                   <input
@@ -782,19 +954,19 @@ export function ProjectDashboard() {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-300">Email</label>
+                <label className="mb-1 block text-xs font-medium text-senti-text/80">Email</label>
                 <input
                   type="email"
                   value={user.email}
                   disabled
-                  className="w-full cursor-not-allowed rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2 text-sm text-gray-400"
+                  className="w-full cursor-not-allowed rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2 text-sm text-senti-muted"
                 />
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowProfile(false)}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 hover:bg-senti-border/60"
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-senti-text/80 hover:bg-senti-border/60"
                   disabled={savingProfile}
                 >
                   Cancel

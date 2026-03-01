@@ -46,6 +46,7 @@ app.use(
   createProxyMiddleware({
     target: env.authServiceUrl,
     changeOrigin: true,
+    pathRewrite: { "^/": "/auth/" },
     timeout: 30000,
     proxyTimeout: 30000,
     on: {
@@ -69,6 +70,7 @@ app.use(
   createProxyMiddleware({
     target: env.authServiceUrl,
     changeOrigin: true,
+    pathRewrite: { "^/": "/projects/" },
     timeout: 30000,
     proxyTimeout: 30000,
     on: {
@@ -100,12 +102,12 @@ app.use(
       proxyReq(proxyReq, req) {
         // Set longer timeout on the proxied request
         proxyReq.setTimeout(180000);
-        
+
         // Log when request is being proxied
         console.log(`[gateway] Proxying ${req.method} ${req.path} to collector (timeout: 180s)`);
         console.log(`[gateway] Content-Length: ${req.headers["content-length"] || "unknown"}`);
         console.log(`[gateway] Content-Type: ${req.headers["content-type"] || "unknown"}`);
-        
+
         // Copy important headers
         if (req.headers.origin) {
           proxyReq.setHeader("Origin", req.headers.origin);
@@ -123,7 +125,7 @@ app.use(
           // Provide more specific error messages
           let statusCode = 502;
           let errorMessage = "Collector service unavailable";
-          
+
           if (err.code === "ECONNRESET" || err.message.includes("socket hang up")) {
             errorMessage = "Connection to collector service was reset. The request may have timed out.";
             statusCode = 504; // Gateway Timeout
@@ -131,8 +133,8 @@ app.use(
             errorMessage = "Collector service request timed out";
             statusCode = 504;
           }
-          
-          res.status(statusCode).json({ 
+
+          res.status(statusCode).json({
             error: errorMessage,
             code: "PROXY_ERROR",
             details: err.message,
@@ -157,15 +159,15 @@ const server = app.listen(env.port, () => {
   server.timeout = 180000; // 3 minutes
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000; // 66 seconds
-  
+
   console.log("\n" + "=".repeat(60));
   console.log("🚀 API Gateway Started");
   console.log("=".repeat(60));
   console.log(`   Port: ${env.port}`);
   console.log(`   Server Timeout: 180s`);
   console.log(`   Health: http://localhost:${env.port}/health`);
-  console.log(`   Auth:   http://localhost:${env.port}/auth/* -> ${env.authServiceUrl}`);
-  console.log(`   Projects: http://localhost:${env.port}/projects/* -> ${env.authServiceUrl}`);
+  console.log(`   Auth:      http://localhost:${env.port}/auth/* -> ${env.authServiceUrl}`);
+  console.log(`   Projects:  http://localhost:${env.port}/projects/* -> ${env.authServiceUrl}`);
   console.log(`   Collector: http://localhost:${env.port}/api/collect/* -> ${env.collectorServiceUrl}`);
   console.log("=".repeat(60) + "\n");
 });

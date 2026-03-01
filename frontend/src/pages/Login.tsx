@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { Header } from "../components/Header";
+import { AuthBackgroundChart } from "../components/ui/AuthBackgroundChart";
 
 export function Login() {
   const navigate = useNavigate();
@@ -32,8 +33,9 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-senti-dark">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
+    <div className="relative min-h-screen bg-senti-dark overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-senti-purple/10 via-senti-dark to-senti-dark z-0" />
+      <AuthBackgroundChart />
       <Header />
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-14">
         <motion.div
@@ -43,12 +45,12 @@ export function Login() {
         >
           <Link
             to="/"
-            className="mb-6 inline-block text-sm text-gray-400 transition-colors hover:text-white"
+            className="mb-6 inline-block text-sm text-senti-muted transition-colors hover:text-senti-text dark:text-gray-400 dark:hover:text-white"
           >
             ← Back to home
           </Link>
-          <h1 className="mb-2 text-3xl font-bold text-white">Welcome back</h1>
-          <p className="mb-6 text-gray-400">Sign in to your Sentimind account</p>
+          <h1 className="mb-2 text-3xl font-bold font-semibold text-senti-text dark:text-white">Welcome back</h1>
+          <p className="mb-6 text-senti-muted dark:text-gray-400">Sign in to your Sentimind account</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-300">
@@ -58,7 +60,7 @@ export function Login() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
               >
                 Email
               </label>
@@ -68,14 +70,14 @@ export function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                 placeholder="you@example.com"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
               >
                 Password
               </label>
@@ -85,7 +87,7 @@ export function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                 placeholder="••••••••"
               />
             </div>
@@ -97,9 +99,9 @@ export function Login() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-          <p className="mt-6 text-center text-sm text-gray-400">
+          <p className="mt-6 text-center text-sm text-senti-muted dark:text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link to="/signup" className="font-medium text-senti-purple hover:underline">
+            <Link to="/signup" className="font-semibold text-senti-purple hover:underline">
               Sign up
             </Link>
           </p>

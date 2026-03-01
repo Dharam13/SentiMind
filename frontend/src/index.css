@@ -4,19 +4,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens (appended for safe refactor; overrides earlier legacy tokens) */
 :root {
-  --senti-dark: #0f0f1a;
-  --senti-card: #1a1a2e;
-  --senti-border: #2a2a4a;
-  --senti-purple: #8b5cf6;
-  --senti-blue: #3b82f6;
+  /* Light mode (Enhanced contrast) */
+  --senti-dark: 255 255 255;
+  --senti-card: 247 247 251;
+  --senti-border: 226 232 240;
+  --senti-primary: 109 74 255;
+  --senti-primary-2: 124 92 255;
+  --senti-glow: 233 229 255;
+  --senti-text: 15 23 42; /* #0f172a - Primary text */
+  --senti-muted: 51 65 85; /* #334155 - Secondary text */
+  --senti-placeholder: 71 85 105; /* #475569 - Labels/placeholders */
+
+  /* Back-compat names */
+  --senti-purple: rgb(var(--senti-primary));
+  --senti-blue: rgb(var(--senti-primary-2));
+}
+
+html.dark {
+  /* Dark mode (Pure Black) */
+  --senti-dark: 0 0 0;
+  --senti-card: 18 18 26;
+  --senti-border: 42 42 74;
+  --senti-primary: 124 92 255;
+  --senti-primary-2: 167 139 250;
+  --senti-glow: 167 139 250;
+  --senti-text: 255 255 255; /* Pure White for contrast */
+  --senti-muted: 148 163 184;
 }
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--senti-dark);
-  color: #fff;
+  background: rgb(var(--senti-dark));
+  color: rgb(var(--senti-text));
   min-height: 100vh;
 }
 

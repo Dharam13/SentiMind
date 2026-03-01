@@ -1,0 +1,26 @@
+/* Theme tokens (class strategy: toggle `dark` class on <html>) */
+
+:root {
+  /* Light mode */
+  --senti-dark: 255 255 255; /* page background */
+  --senti-card: 247 247 251; /* card surface */
+  --senti-border: 226 232 240; /* slate-200 */
+  --senti-primary: 109 74 255; /* #6D4AFF */
+  --senti-primary-2: 124 92 255; /* #7C5CFF */
+  --senti-glow: 233 229 255; /* #E9E5FF */
+  --senti-text: 17 17 17; /* #111111 */
+  --senti-muted: 100 116 139; /* slate-500 */
+}
+
+html.dark {
+  /* Dark mode */
+  --senti-dark: 11 11 15; /* #0B0B0F */
+  --senti-card: 18 18 26; /* #12121A */
+  --senti-border: 42 42 74;
+  --senti-primary: 124 92 255; /* #7C5CFF */
+  --senti-primary-2: 167 139 250; /* #A78BFA */
+  --senti-glow: 167 139 250; /* #A78BFA */
+  --senti-text: 234 234 240; /* #EAEAF0 */
+  --senti-muted: 148 163 184; /* slate-400 */
+}
+

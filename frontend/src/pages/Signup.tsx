@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { Header } from "../components/Header";
+import { AuthBackgroundChart } from "../components/ui/AuthBackgroundChart";
 
 export function Signup() {
   const navigate = useNavigate();
@@ -41,8 +42,9 @@ export function Signup() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-senti-dark">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
+      <div className="relative min-h-screen bg-senti-dark overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-senti-purple/10 via-senti-dark to-senti-dark z-0" />
+        <AuthBackgroundChart />
         <Header />
         <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-14">
           <motion.div
@@ -53,8 +55,8 @@ export function Signup() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-3xl text-green-400">
               ✓
             </div>
-            <h1 className="mb-2 text-2xl font-bold text-white">Account created</h1>
-            <p className="mb-6 text-gray-400">
+            <h1 className="mb-2 text-2xl font-bold font-semibold text-senti-text dark:text-white">Account created</h1>
+            <p className="mb-6 text-senti-muted dark:text-gray-400">
               You can now sign in with your email and password.
             </p>
             <Link
@@ -70,8 +72,9 @@ export function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-senti-dark">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
+    <div className="relative min-h-screen bg-senti-dark overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-senti-purple/10 via-senti-dark to-senti-dark z-0" />
+      <AuthBackgroundChart />
       <Header />
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-16 pt-14">
         <motion.div
@@ -81,12 +84,12 @@ export function Signup() {
         >
           <Link
             to="/"
-            className="mb-6 inline-block text-sm text-gray-400 transition-colors hover:text-white"
+            className="mb-6 inline-block text-sm text-senti-muted transition-colors hover:text-senti-text dark:text-gray-400 dark:hover:text-white"
           >
             ← Back to home
           </Link>
-          <h1 className="mb-2 text-3xl font-bold text-white">Create account</h1>
-          <p className="mb-6 text-gray-400">
+          <h1 className="mb-2 text-3xl font-bold font-semibold text-senti-text dark:text-white">Create account</h1>
+          <p className="mb-6 text-senti-muted dark:text-gray-400">
             Join Sentimind to track your brand sentiment
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,7 +102,7 @@ export function Signup() {
               <div>
                 <label
                   htmlFor="firstName"
-                  className="mb-1 block text-sm font-medium text-gray-300"
+                  className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
                 >
                   First name
                 </label>
@@ -109,14 +112,14 @@ export function Signup() {
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                  className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                   placeholder="Jane"
                 />
               </div>
               <div>
                 <label
                   htmlFor="lastName"
-                  className="mb-1 block text-sm font-medium text-gray-300"
+                  className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
                 >
                   Last name
                 </label>
@@ -125,7 +128,7 @@ export function Signup() {
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                  className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                   placeholder="Doe"
                 />
               </div>
@@ -133,7 +136,7 @@ export function Signup() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
               >
                 Email
               </label>
@@ -143,14 +146,14 @@ export function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                 placeholder="you@example.com"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-semibold text-senti-placeholder dark:text-gray-300"
               >
                 Password
               </label>
@@ -161,7 +164,7 @@ export function Signup() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-senti-text placeholder-senti-placeholder dark:text-white dark:placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
                 placeholder="At least 8 characters"
               />
             </div>
@@ -173,9 +176,9 @@ export function Signup() {
               {loading ? "Creating account…" : "Create account"}
             </button>
           </form>
-          <p className="mt-6 text-center text-sm text-gray-400">
+          <p className="mt-6 text-center text-sm text-senti-muted dark:text-gray-400">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-senti-purple hover:underline">
+            <Link to="/login" className="font-semibold text-senti-purple hover:underline">
               Sign in
             </Link>
           </p>
