@@ -32,6 +32,8 @@ const env = {
 
   bcryptRounds: parseInt(optionalEnv("BCRYPT_ROUNDS", "10"), 10),
 
+  googleClientId: requireEnv("GOOGLE_CLIENT_ID"),
+
   corsOrigins: optionalEnv("CORS_ORIGINS", "http://localhost:3000").split(","),
 };
 

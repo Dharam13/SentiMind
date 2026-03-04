@@ -55,6 +55,10 @@ router.post(
   }
 );
 
+router.post("/google", (req, res, next) => {
+  authController.googleLogin(req, res).catch(next);
+});
+
 router.get("/me", requireAuth, (req, res, next) => {
   authController.me(req, res).catch(next);
 });

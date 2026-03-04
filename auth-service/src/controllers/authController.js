@@ -66,6 +66,21 @@ async function me(req, res) {
   });
 }
 
+async function googleLogin(req, res) {
+  const { idToken } = req.body;
+  if (!idToken) {
+    res.status(400).json({ error: "Google ID token is required" });
+    return;
+  }
+  const result = await authService.googleLogin(idToken);
+  res.status(200).json({
+    user: result.user,
+    accessToken: result.tokens.accessToken,
+    refreshToken: result.tokens.refreshToken,
+    expiresIn: result.tokens.expiresIn,
+  });
+}
+
 async function updateProfile(req, res) {
   if (!req.user) {
     res.status(401).json({ error: "Authentication required" });
@@ -92,5 +107,6 @@ module.exports = {
   refresh,
   logout,
   me,
+  googleLogin,
   updateProfile,
 };

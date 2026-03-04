@@ -28,6 +28,25 @@ async function findById(id) {
   });
 }
 
+async function findByGoogleId(googleId) {
+  return prisma.user.findUnique({
+    where: { googleId },
+  });
+}
+
+async function createGoogleUser(data) {
+  return prisma.user.create({
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName ?? null,
+      email: data.email.toLowerCase().trim(),
+      password: null,
+      googleId: data.googleId,
+      role: "USER",
+    },
+  });
+}
+
 async function updateProfile(id, data) {
   return prisma.user.update({
     where: { id },
@@ -54,6 +73,8 @@ module.exports = {
   createUser,
   findByEmail,
   findById,
+  findByGoogleId,
+  createGoogleUser,
   updateProfile,
   sanitizeUser,
 };

@@ -34,7 +34,8 @@ model User {
   firstName String   @map("first_name")
   lastName  String?  @map("last_name")
   email     String   @unique
-  password  String   // Always store bcrypt hash, never plain text
+  password  String?  // Nullable for Google OAuth users; bcrypt hash for email/password users
+  googleId  String?  @unique @map("google_id")
   isVerified Boolean @default(false) @map("is_verified")
   role      Role     @default(USER)
   createdAt DateTime @default(now()) @map("created_at")

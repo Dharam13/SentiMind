@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../contexts/AuthContext";
 import { Header } from "../components/Header";
 import { AuthBackgroundChart } from "../components/ui/AuthBackgroundChart";
+import * as authApi from "../api/authApi";
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login, setTokens, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,6 +29,25 @@ export function Login() {
       navigate("/projects", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleSuccess(credentialResponse: { credential?: string }) {
+    const idToken = credentialResponse.credential;
+    if (!idToken) {
+      setError("Google sign-in failed: no credential received");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const res = await authApi.googleLogin(idToken);
+      setTokens(res.accessToken, res.refreshToken, res.user);
+      navigate("/projects", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -99,6 +120,27 @@ export function Login() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-senti-border" />
+            <span className="text-xs text-senti-muted dark:text-gray-500">or continue with</span>
+            <div className="h-px flex-1 bg-senti-border" />
+          </div>
+
+          {/* Google Login */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google sign-in failed. Please try again.")}
+              theme="filled_black"
+              shape="pill"
+              size="large"
+              width="360"
+              text="signin_with"
+            />
+          </div>
+
           <p className="mt-6 text-center text-sm text-senti-muted dark:text-gray-400">
             Don&apos;t have an account?{" "}
             <Link to="/signup" className="font-semibold text-senti-purple hover:underline">

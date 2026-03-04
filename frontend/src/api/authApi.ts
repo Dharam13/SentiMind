@@ -110,3 +110,10 @@ export async function updateProfile(
   });
 }
 
+export async function googleLogin(idToken: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+}
+
