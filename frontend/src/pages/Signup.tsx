@@ -6,7 +6,7 @@ import { Header } from "../components/Header";
 
 export function Signup() {
   const navigate = useNavigate();
-  const { signup, user } = useAuth();
+  const { signup, user, loading: authLoading } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,6 +15,12 @@ export function Signup() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Wait for auth context to finish initializing before rendering
+  if (authLoading) {
+    return null;
+  }
+
+  // If user already authenticated, redirect to projects
   if (user) {
     navigate("/projects", { replace: true });
     return null;

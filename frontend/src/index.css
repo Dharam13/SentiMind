@@ -6,14 +6,27 @@
 
 :root {
   /* Light theme - improved for readability and contrast */
-  --background: 0 0% 98%;
-  --foreground: 0 0% 13%;
+  --background: 0 0% 97%;
+  --foreground: 0 0% 10%;
   --card: 0 0% 100%;
-  --border: 0 0% 85%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
+  --border: 0 0% 78%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 38%;
   --primary: 243 75% 59%;
   --primary-foreground: 0 0% 100%;
+
+  /* Secondary colors for stat cards - matching dashboard design */
+  --stat-blue: 217 91% 60%;
+  --stat-green: 142 76% 36%;
+  --stat-purple: 280 85% 65%;
+  --stat-orange: 38 92% 50%;
+  --stat-red: 0 84% 60%;
+
+  /* Backgrounds for colored stat cards */
+  --stat-blue-bg: 217 100% 97%;
+  --stat-green-bg: 142 71% 94%;
+  --stat-purple-bg: 280 84% 97%;
+  --stat-orange-bg: 38 97% 95%;
 
   /* Legacy vars (kept for older styles that still reference these) */
   --senti-dark: #0f0f1a;
@@ -57,13 +70,13 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: hsl(var(--muted-foreground) / 0.4);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(var(--muted-foreground) / 0.6);
 }
 
 /* Dark mode scrollbar */
@@ -77,7 +90,40 @@ html {
 
 @layer components {
   .glass-card {
-    @apply border border-border bg-card/70 shadow-sm;
+    @apply border border-border bg-card shadow-sm;
+  }
+
+  /* Light theme card styling */
+  @supports (color: hsl(0 0% 100%)) and (selector(:not(.dark))) {
+    .glass-card {
+      @apply shadow-lg;
+    }
+  }
+
+  /* Enhanced card styling for light theme */
+  .bg-card {
+    @apply shadow-sm;
+  }
+
+  .dark .bg-card {
+    @apply shadow-none;
+  }
+
+  /* Stat card styles with colors */
+  .stat-card-blue {
+    @apply bg-[hsl(var(--stat-blue-bg))] border-[hsl(var(--stat-blue))] text-[hsl(var(--stat-blue))];
+  }
+
+  .stat-card-green {
+    @apply bg-[hsl(var(--stat-green-bg))] border-[hsl(var(--stat-green))] text-[hsl(var(--stat-green))];
+  }
+
+  .stat-card-purple {
+    @apply bg-[hsl(var(--stat-purple-bg))] border-[hsl(var(--stat-purple))] text-[hsl(var(--stat-purple))];
+  }
+
+  .stat-card-orange {
+    @apply bg-[hsl(var(--stat-orange-bg))] border-[hsl(var(--stat-orange))] text-[hsl(var(--stat-orange))];
   }
 
   @keyframes shimmer {
@@ -91,5 +137,63 @@ html {
 
   .animate-shimmer {
     animation: shimmer 2s infinite;
+  }
+}
+
+/* Keep autofill styling consistent with themed inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--background)) inset;
+  box-shadow: 0 0 0px 1000px hsl(var(--background)) inset;
+  -webkit-text-fill-color: hsl(var(--foreground));
+  caret-color: hsl(var(--foreground));
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Enhanced input styling for light theme */
+input,
+textarea,
+select {
+  @apply text-foreground placeholder:text-muted-foreground;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  @apply border-primary;
+}
+
+/* Text styling hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  @apply text-foreground;
+}
+
+/* Light theme specific enhancements */
+@supports (color: hsl(0 0% 100%)) and (selector(:not(.dark))) {
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-card border border-border text-foreground;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-primary/30 border-primary;
+  }
+
+  .border {
+    @apply border-border;
   }
 }

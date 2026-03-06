@@ -13,6 +13,11 @@ export default {
         "muted-foreground": "hsl(var(--muted-foreground) / <alpha-value>)",
         primary: "hsl(var(--primary) / <alpha-value>)",
         "primary-foreground": "hsl(var(--primary-foreground) / <alpha-value>)",
+        "stat-blue": "hsl(var(--stat-blue) / <alpha-value>)",
+        "stat-green": "hsl(var(--stat-green) / <alpha-value>)",
+        "stat-purple": "hsl(var(--stat-purple) / <alpha-value>)",
+        "stat-orange": "hsl(var(--stat-orange) / <alpha-value>)",
+        "stat-red": "hsl(var(--stat-red) / <alpha-value>)",
         senti: {
           dark: "#0f0f1a",
           card: "#1a1a2e",
