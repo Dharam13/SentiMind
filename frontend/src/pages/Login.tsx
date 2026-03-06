@@ -32,23 +32,23 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-senti-dark">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
       <Header />
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/90 p-8 shadow-xl backdrop-blur"
+          className="w-full max-w-md rounded-2xl border border-border bg-card/90 p-8 shadow-xl backdrop-blur"
         >
           <Link
             to="/"
-            className="mb-6 inline-block text-sm text-gray-400 transition-colors hover:text-white"
+            className="mb-6 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             ← Back to home
           </Link>
-          <h1 className="mb-2 text-3xl font-bold text-white">Welcome back</h1>
-          <p className="mb-6 text-gray-400">Sign in to your Sentimind account</p>
+          <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome back</h1>
+          <p className="mb-6 text-muted-foreground">Sign in to your Sentimind account</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-300">
@@ -58,7 +58,7 @@ export function Login() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-medium text-foreground"
               >
                 Email
               </label>
@@ -68,14 +68,14 @@ export function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="you@example.com"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="mb-1 block text-sm font-medium text-gray-300"
+                className="mb-1 block text-sm font-medium text-foreground"
               >
                 Password
               </label>
@@ -85,21 +85,21 @@ export function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-senti-border bg-senti-dark px-4 py-3 text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="••••••••"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-senti-purple to-senti-blue py-3 font-semibold text-white shadow-lg transition-opacity hover:shadow-purple-500/25 disabled:opacity-60"
+              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-          <p className="mt-6 text-center text-sm text-gray-400">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link to="/signup" className="font-medium text-senti-purple hover:underline">
+            <Link to="/signup" className="font-medium text-primary hover:underline">
               Sign up
             </Link>
           </p>

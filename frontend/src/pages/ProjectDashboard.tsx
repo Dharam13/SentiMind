@@ -11,6 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { useAuth } from "../contexts/AuthContext";
+import { ThemeToggle } from "../components/ThemeToggle";
 import * as projectApi from "../lib/projectApi";
 import * as collectorApi from "../lib/collectorApi";
 
@@ -221,7 +222,7 @@ export function ProjectDashboard() {
         hours,
       });
       console.log(`[Dashboard] Collection completed:`, result);
-      
+
       // Show errors if any platforms failed
       if (result.errorsByPlatform && Object.keys(result.errorsByPlatform).length > 0) {
         const errorMessages = Object.entries(result.errorsByPlatform)
@@ -270,126 +271,154 @@ export function ProjectDashboard() {
     (user.firstName?.[0] ?? "").toUpperCase() + (user.lastName?.[0] ?? "").toUpperCase();
 
   return (
-    <div className="min-h-screen bg-senti-dark text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-senti-dark to-senti-dark" />
 
       <div className="relative flex min-h-screen">
         {/* Sidebar */}
-        <aside className="hidden w-72 flex-shrink-0 border-r border-senti-border bg-senti-card/40 backdrop-blur md:flex md:flex-col">
-          <div className="flex h-16 items-center justify-between border-b border-senti-border px-6">
-            <Link
-              to="/projects"
-              className="bg-gradient-to-r from-senti-purple to-senti-blue bg-clip-text text-lg font-semibold text-transparent"
-            >
-              Sentimind
-            </Link>
-            <span className="rounded-full bg-senti-purple/15 px-2 py-0.5 text-[10px] font-semibold text-senti-purple">
-              Dashboard
+        <aside className="hidden w-72 flex-shrink-0 border-r border-border bg-gradient-to-b from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur md:flex md:flex-col">
+          <div className="flex h-20 items-center justify-between border-b border-border px-6">
+            <div>
+              <Link
+                to="/projects"
+                className="text-lg font-bold bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400 bg-clip-text text-transparent"
+              >
+                Sentimind
+              </Link>
+              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Dashboard</p>
+            </div>
+            <span className="rounded-full bg-blue-100 dark:bg-blue-500/20 px-3 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+              Pro
             </span>
           </div>
 
-          <nav className="flex-1 px-3 py-4 text-sm">
-            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Workspace
+          <nav className="flex-1 px-3 py-6 text-sm overflow-y-auto">
+            <div className="px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              Analysis
             </div>
-            <div className="mt-2 space-y-1">
+            <div className="space-y-1.5">
               {(
                 [
-                  ["mentions", "Mentions"],
-                  ["summary", "Summary"],
-                  ["analysis", "Analysis"],
-                  ["sources", "Sources"],
-                  ["influencers", "Influencers"],
-                  ["comparison", "Comparison"],
-                ] as Array<[NavItem, string]>
-              ).map(([key, label]) => (
+                  ["mentions", "�", "Mentions"],
+                  ["summary", "📈", "Summary"],
+                  ["analysis", "🔎", "Deep Analysis"],
+                  ["sources", "🌍", "Sources"],
+                  ["influencers", "👥", "Influencers"],
+                  ["comparison", "⚖", "Comparison"],
+                ] as Array<[NavItem, string, string]>
+              ).map(([key, icon, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setNav(key)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
-                    nav === key
-                      ? "bg-senti-purple/15 text-gray-100"
-                      : "text-gray-400 hover:bg-senti-card/40 hover:text-gray-100"
-                  }`}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition duration-200 ${nav === key
+                      ? "bg-primary/15 text-primary border border-primary/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
                 >
+                  <span className="text-base">{icon}</span>
                   <span>{label}</span>
-                  <span className="text-xs text-gray-500">›</span>
                 </button>
               ))}
             </div>
 
-            <div className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="mt-8 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
               Reports
             </div>
-            <div className="mt-2 space-y-1">
-              {["Email reports", "PDF report", "Excel export", "Infographic"].map((label) => (
+            <div className="space-y-1.5">
+              {[
+                ["✉", "Email Reports"],
+                ["📄", "PDF Report"],
+                ["📊", "Excel Export"],
+                ["🎨", "Infographic"]
+              ].map(([icon, label]) => (
                 <button
                   key={label}
                   type="button"
                   disabled
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-gray-500 hover:bg-senti-card/30"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-muted-foreground/60 cursor-not-allowed hover:bg-muted/40 transition duration-200"
                 >
-                  <span>{label}</span>
-                  <span className="text-[10px] text-gray-600">soon</span>
+                  <span className="text-base">{icon}</span>
+                  <span className="flex-1">{label}</span>
+                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 rounded px-2 py-0.5">
+                    Coming
+                  </span>
                 </button>
               ))}
             </div>
           </nav>
+
+          {/* Footer in sidebar */}
+          <div className="border-t border-border p-4">
+            <div className="rounded-lg bg-primary/10 p-3 text-center">
+              <p className="text-xs font-semibold text-foreground">Need help?</p>
+              <button className="mt-2 w-full rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/30 transition">
+                Contact Support
+              </button>
+            </div>
+          </div>
         </aside>
 
         {/* Main */}
         <div className="flex min-h-screen flex-1 flex-col">
-          {/* Top bar - z-30 so header and dropdown sit above content */}
-          <header className="relative z-30 flex h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-senti-border bg-senti-dark/95 px-4 backdrop-blur md:px-6">
-            <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Project
+          {/* Top bar */}
+          <header className="relative z-30 flex h-20 flex-shrink-0 items-center justify-between gap-4 border-b border-border bg-gradient-to-r from-card/95 to-background/95 backdrop-blur px-6 lg:px-8">
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                📍 Project Overview
               </div>
-              <div className="truncate text-lg font-semibold text-gray-50">
+              <div className="mt-1 truncate text-xl font-bold text-foreground">
                 {loadingProject ? "Loading…" : project?.primaryKeyword ?? "Unknown project"}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+              <ThemeToggle />
               <select
                 value={hours}
                 onChange={(e) => setHours(parseInt(e.target.value, 10))}
-                className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-2 text-xs text-gray-100 focus:border-senti-purple focus:outline-none"
+                className="rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               >
-                <option value={24}>Last 24h</option>
-                <option value={168}>Last 7d</option>
-                <option value={720}>Last 30d</option>
+                <option value={24}>Last 24 hours</option>
+                <option value={168}>Last 7 days</option>
+                <option value={720}>Last 30 days</option>
               </select>
               <button
                 type="button"
                 disabled={running}
                 onClick={handleRun}
-                className="inline-flex items-center rounded-xl bg-gradient-to-r from-senti-purple to-senti-blue px-4 py-2 text-xs font-semibold text-white shadow disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:scale-105 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {running ? "Running…" : "Run"}
+                <span>{running ? "⏳" : "▶"}</span>
+                <span>{running ? "Running…" : "Run"}</span>
               </button>
 
-              <div ref={userMenuRef} className="relative ml-2">
+              <div ref={userMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowUserMenu((open) => !open);
                   }}
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-senti-purple/30 text-sm font-semibold text-white ring-senti-purple/50 transition hover:ring-2"
+                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white hover:shadow-lg hover:scale-105 transition duration-200"
                   aria-expanded={showUserMenu}
                   aria-haspopup="true"
-                  title="Profile menu"
+                  title={`${user?.firstName} ${user?.lastName ?? ""}`}
                 >
                   {initials || "U"}
                 </button>
                 {showUserMenu && (
                   <div
-                    className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-senti-border bg-senti-card shadow-xl ring-1 ring-black/10"
+                    className="absolute right-0 top-full z-50 mt-3 w-56 rounded-xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 shadow-xl backdrop-blur overflow-hidden"
                     role="menu"
                   >
-                    <div className="p-1">
+                    <div className="border-b border-border bg-primary/10 px-4 py-3">
+                      <p className="text-sm font-semibold text-foreground">
+                        {user?.firstName} {user?.lastName ?? ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
+                    </div>
+                    <div className="p-2">
                       <button
                         type="button"
                         role="menuitem"
@@ -399,9 +428,10 @@ export function ProjectDashboard() {
                           setShowUserMenu(false);
                           setShowProfile(true);
                         }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-100 hover:bg-senti-card"
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-foreground hover:bg-primary/10 transition"
                       >
-                        Profile
+                        <span>👤</span>
+                        <span>Profile Settings</span>
                       </button>
                       <button
                         type="button"
@@ -412,9 +442,10 @@ export function ProjectDashboard() {
                           setShowUserMenu(false);
                           void logout();
                         }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 transition"
                       >
-                        Logout
+                        <span>🚪</span>
+                        <span>Logout</span>
                       </button>
                     </div>
                   </div>
@@ -423,53 +454,63 @@ export function ProjectDashboard() {
             </div>
           </header>
 
-          <main className="relative flex flex-1 flex-col gap-4 overflow-hidden px-4 py-4 md:px-6 md:py-6">
+          <main className="relative flex flex-1 flex-col gap-6 overflow-hidden px-6 py-6 lg:px-8">
             {error && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
 
-            <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+            <div className="grid flex-1 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1fr_320px]">
               {/* Center */}
-              <section className="flex min-h-0 flex-col gap-4">
-                <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4 md:p-6">
-                  <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Overview
+              <section className="flex min-h-0 flex-col gap-4 sm:gap-6 overflow-hidden">
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
+                  {/* Header Section */}
+                  <div className="mb-6 pb-6 border-b border-border/40">
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-bold text-foreground mb-1">Analytics Overview</h3>
+                        <p className="text-xs text-muted-foreground">Real-time sentiment and mention tracking</p>
                       </div>
-                      <div className="mb-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setGraphTab("mentions-reach")}
-                          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
-                            graphTab === "mentions-reach"
-                              ? "bg-senti-purple/20 text-gray-100"
-                              : "text-gray-400 hover:text-gray-200"
-                          }`}
-                        >
-                          Mentions & Reach
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setGraphTab("sentiment")}
-                          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
-                            graphTab === "sentiment"
-                              ? "bg-senti-purple/20 text-gray-100"
-                              : "text-gray-400 hover:text-gray-200"
-                          }`}
-                        >
-                          Sentiment
-                        </button>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                          {loadingSummary ? "—" : summary?.totalMentions ?? 0}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">Total Mentions</p>
                       </div>
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {loadingSummary ? "Loading…" : `${summary?.totalMentions ?? 0} mentions`}
                     </div>
                   </div>
 
-                  <div className="h-[320px] w-full">
+                  {/* Tabs Section */}
+                  <div className="mb-6 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGraphTab("mentions-reach")}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
+                        graphTab === "mentions-reach"
+                          ? "border-blue-600/50 bg-blue-600/10 text-blue-600 dark:text-blue-400"
+                          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      <span className="text-base">📈</span>
+                      <span>Mentions & Reach</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGraphTab("sentiment")}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
+                        graphTab === "sentiment"
+                          ? "border-emerald-600/50 bg-emerald-600/10 text-emerald-600 dark:text-emerald-400"
+                          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      <span className="text-base">💭</span>
+                      <span>Sentiment Breakdown</span>
+                    </button>
+                  </div>
+
+                  {/* Chart Section */}
+                  <div className="h-[380px] w-full rounded-lg border border-border/40 bg-muted/5 p-4">
                     <ResponsiveContainer width="100%" height="100%">
                       {graphTab === "mentions-reach" ? (
                         <AreaChart
@@ -531,12 +572,12 @@ export function ProjectDashboard() {
                           />
                         </AreaChart>
                       ) : sentimentChartData.length === 0 ? (
-                          <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-senti-border bg-senti-dark/40 p-6 text-center">
-                            <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
-                            </p>
-                          </div>
+                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background/40 p-6 text-center">
+                          <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
+                          </p>
+                        </div>
                       ) : (
                         <AreaChart
                           data={sentimentChartData}
@@ -582,7 +623,7 @@ export function ProjectDashboard() {
                           <Legend
                             wrapperStyle={{ paddingTop: 12 }}
                             formatter={(value) => (
-                              <span className="text-sm text-gray-300">{value}</span>
+                              <span className="text-sm text-gray-400">{value}</span>
                             )}
                             iconType="circle"
                             iconSize={8}
@@ -626,43 +667,51 @@ export function ProjectDashboard() {
                   </div>
                 </div>
 
-                <div className="min-h-0 rounded-2xl border border-senti-border bg-senti-card/70 p-4 md:p-6">
-                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-h-0 rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Feed
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                        <span>💬</span>
+                        Feed Stream
                       </div>
-                      <div className="text-lg font-semibold text-gray-50">Recent mentions</div>
+                      <h3 className="text-xl font-bold text-foreground">Recent mentions</h3>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <select
                         value={sourceFilter}
                         onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-                        className="rounded-xl border border-senti-border bg-senti-card/60 px-3 py-1.5 text-xs text-gray-100 focus:border-senti-purple focus:outline-none"
+                        className="rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
                       >
-                        <option value="all">All sources</option>
-                        <option value="social">Social Media</option>
-                        <option value="news">News</option>
-                        <option value="blogs">Blogs</option>
+                        <option value="all">🌐 All sources</option>
+                        <option value="social">📱 Social Media</option>
+                        <option value="news">📰 News</option>
+                        <option value="blogs">✍️ Blogs</option>
                       </select>
                       <Link
                         to="/projects"
-                        className="text-xs font-medium text-gray-400 hover:text-gray-100"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition"
                       >
-                        Back to projects
+                        ← Back
                       </Link>
                     </div>
                   </div>
 
                   {loadingSummary ? (
-                    <div className="py-8 text-center text-sm text-gray-400">Loading mentions…</div>
+                    <div className="py-12 text-center">
+                      <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
+                        Loading mentions…
+                      </div>
+                    </div>
                   ) : recentMentions.length === 0 ? (
-                    <div className="rounded-xl bg-senti-dark/60 p-4 text-sm text-gray-400">
-                      No mentions in this time window. Click <span className="text-gray-200">Run</span>{" "}
-                      to collect fresh data.
+                    <div className="rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
+                      <p className="text-sm font-medium text-foreground">No mentions yet</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Click the <span className="font-semibold text-blue-600 dark:text-blue-400">Run</span> button to collect fresh data.
+                      </p>
                     </div>
                   ) : (
-                    <ul className="max-h-[320px] space-y-2 overflow-auto pr-1">
+                    <ul className="max-h-[500px] space-y-3 overflow-y-auto pr-2 scroll-smooth">
                       {recentMentions.slice(0, 50).map((m) => {
                         const label = m.sentimentStatus === "completed" && m.sentiment?.label
                           ? m.sentiment.label
@@ -673,118 +722,120 @@ export function ProjectDashboard() {
                             ? m.metadata.title
                             : "No content");
                         return (
-                        <li
-                          key={m.id}
-                          className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"
-                        >
-                          <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <span className="inline-flex items-center gap-2 text-gray-300">
-                              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-senti-purple/20 px-1 text-[11px] font-semibold text-senti-purple">
-                                {platformIcon(m.platform)}
-                              </span>
-                              <span className="font-medium">{platformLabel(m.platform)}</span>
-                              {m.sourceType === "rss" && (
-                                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">RSS</span>
-                              )}
-                              <span className="text-gray-500">•</span>
-                              <span className="text-gray-500">
-                                {new Date(m.publishedAt).toLocaleString()}
-                              </span>
-                            </span>
-                            <span className="flex items-center gap-2">
-                              {label && (
-                                <span
-                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                    label.toLowerCase() === "positive"
-                                      ? "bg-emerald-500/20 text-emerald-300"
-                                      : label.toLowerCase() === "negative"
-                                        ? "bg-red-500/20 text-red-300"
-                                        : "bg-gray-500/20 text-gray-300"
-                                  }`}
-                                >
-                                  {label}
+                          <li
+                            key={m.id}
+                            className="rounded-lg border border-border bg-card/50 hover:bg-card/80 hover:border-blue-600/40 p-4 transition duration-200 hover:shadow-md"
+                          >
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                              <span className="inline-flex items-center gap-2.5 text-sm">
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-600/20 text-xs font-bold">
+                                  {platformIcon(m.platform)}
                                 </span>
-                              )}
-                              {m.sourceUrl ? (
-                                <a
-                                  href={m.sourceUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-gray-400 hover:text-white"
-                                >
-                                  Open ↗
-                                </a>
-                              ) : null}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-200">
-                            {displayContent}
-                          </div>
-                          {(m.author || m.metadata?.title) && (m.content || "").trim() && (
-                            <div className="mt-2 text-xs text-gray-500">
-                              {m.author ? `By ${m.author}` : m.metadata?.title}
+                                <span className="font-semibold text-foreground">{platformLabel(m.platform)}</span>
+                                {m.sourceType === "rss" && (
+                                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">RSS</span>
+                                )}
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(m.publishedAt).toLocaleString()}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                {label && (
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-xs font-bold ${label.toLowerCase() === "positive"
+                                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                        : label.toLowerCase() === "negative"
+                                          ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                                          : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                      }`}
+                                  >
+                                    {label}
+                                  </span>
+                                )}
+                                {m.sourceUrl ? (
+                                  <a
+                                    href={m.sourceUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                                  >
+                                    Open ↗
+                                  </a>
+                                ) : null}
+                              </span>
                             </div>
-                          )}
-                        </li>
-                      ); })}
+                            <div className="mb-2 text-sm text-foreground line-clamp-2">
+                              {displayContent}
+                            </div>
+                            {(m.author || (m.metadata?.title && (m.content || "").trim())) && (
+                              <div className="text-xs text-muted-foreground">
+                                {m.author ? `By ${m.author}` : m.metadata?.title}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
               </section>
 
               {/* Right rail */}
-              <aside className="flex flex-col gap-4">
-                <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4">
-                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Sources
+              <aside className="flex flex-col gap-4 sm:gap-6 hidden lg:flex">
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg">
+                  <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    <span>🌐</span>
+                    Platform Sources
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {["twitter", "reddit", "youtube", "linkedin", "news", "medium"].map((p) => (
                       <div
                         key={p}
-                        className="rounded-xl border border-senti-border bg-senti-dark/60 p-3"
+                        className="group rounded-xl border border-border bg-card/50 hover:bg-card hover:border-blue-600/40 p-4 transition duration-200 hover:shadow-md"
                       >
-                        <div className="mb-1 flex items-center justify-between text-xs text-gray-400">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-senti-card/60 text-[12px] font-semibold text-gray-100">
-                              {platformIcon(p)}
-                            </span>
-                            {platformLabel(p)}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600/20 text-sm font-bold">
+                            {platformIcon(p)}
                           </span>
+                          <span className="min-w-0 truncate text-xs font-semibold text-foreground">{platformLabel(p)}</span>
                         </div>
-                        <div className="text-lg font-semibold text-gray-50">
+                        <div className="text-2xl font-bold text-foreground">
                           {byPlatform.get(p) ?? 0}
                         </div>
-                        <div className="text-[11px] text-gray-500">mentions</div>
+                        <div className="text-[11px] text-muted-foreground font-medium">mentions</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Status
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg">
+                  <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    <span>🔧</span>
+                    System Status
                   </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2">
-                      <span className="text-gray-400">Collector</span>
-                      <span className="text-gray-100">
-                        {running ? "Running…" : "Idle"}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-card/50 px-4 py-3">
+                      <span className="text-sm font-medium text-muted-foreground">Collector</span>
+                      <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${running ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                        <span className={`h-2 w-2 rounded-full ${running ? "bg-amber-600 dark:bg-amber-400 animate-pulse" : "bg-emerald-600 dark:bg-emerald-400"}`}></span>
+                        {running ? "Running" : "Idle"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2">
-                      <span className="text-gray-400">Sentiment</span>
-                      <span className="text-gray-100">Next milestone</span>
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-card/50 px-4 py-3">
+                      <span className="text-sm font-medium text-muted-foreground">Sentiment</span>
+                      <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 dark:text-blue-400">
+                        <span className="h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse"></span>
+                        Ready
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {nav !== "mentions" && (
-                  <div className="rounded-2xl border border-senti-border bg-senti-card/70 p-4 text-sm text-gray-400">
-                    <div className="font-semibold text-gray-100">Coming soon</div>
-                    <div className="mt-1">
-                      This section will be enabled as we add sentiment scoring, sources analysis,
-                      influencers, and competitive comparison.
+                  <div className="rounded-2xl border border-dashed border-border bg-gradient-to-br from-blue-600/10 to-emerald-600/10 p-6">
+                    <div className="font-bold text-foreground mb-2">🚀 Coming Soon</div>
+                    <div className="text-sm text-muted-foreground leading-relaxed">
+                      More sections are in development including in-depth analysis, influencer tracking, and competitive insights.
                     </div>
                   </div>
                 )}
@@ -796,16 +847,16 @@ export function ProjectDashboard() {
 
       {/* Profile modal */}
       {showProfile && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-senti-border bg-senti-card/95 p-6 shadow-2xl">
-            <h2 className="mb-1 text-lg font-semibold text-white">Profile settings</h2>
-            <p className="mb-4 text-sm text-gray-400">
-              Update your name details. Your email is fixed for this account.
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-6 shadow-2xl">
+            <h2 className="text-2xl font-bold text-foreground">Profile Settings</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Update your account information
             </p>
-            <form onSubmit={handleSaveProfile} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveProfile} className="mt-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
                     First name
                   </label>
                   <input
@@ -813,35 +864,35 @@ export function ProjectDashboard() {
                     required
                     value={profileFirstName}
                     onChange={(e) => setProfileFirstName(e.target.value)}
-                    className="w-full rounded-xl border border-senti-border bg-senti-dark px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                    className="w-full rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-300">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
                     Last name
                   </label>
                   <input
                     type="text"
                     value={profileLastName}
                     onChange={(e) => setProfileLastName(e.target.value)}
-                    className="w-full rounded-xl border border-senti-border bg-senti-dark px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-senti-purple focus:outline-none focus:ring-1 focus:ring-senti-purple"
+                    className="w-full rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
                   />
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-300">Email</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Email</label>
                 <input
                   type="email"
                   value={user.email}
                   disabled
-                  className="w-full cursor-not-allowed rounded-xl border border-senti-border bg-senti-dark/60 px-3 py-2 text-sm text-gray-400"
+                  className="w-full cursor-not-allowed rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground"
                 />
               </div>
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowProfile(false)}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 hover:bg-senti-border/60"
+                  className="rounded-lg px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted/50 hover:bg-muted transition disabled:opacity-50"
                   disabled={savingProfile}
                 >
                   Cancel
@@ -849,9 +900,9 @@ export function ProjectDashboard() {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="rounded-xl bg-gradient-to-r from-senti-purple to-senti-blue px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
+                  className="rounded-lg px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {savingProfile ? "Saving…" : "Save changes"}
+                  {savingProfile ? "Saving…" : "Save Changes"}
                 </button>
               </div>
             </form>

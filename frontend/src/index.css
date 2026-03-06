@@ -5,6 +5,17 @@
 @tailwind utilities;
 
 :root {
+  /* Light theme - improved for readability and contrast */
+  --background: 0 0% 98%;
+  --foreground: 0 0% 13%;
+  --card: 0 0% 100%;
+  --border: 0 0% 85%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --primary: 243 75% 59%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Legacy vars (kept for older styles that still reference these) */
   --senti-dark: #0f0f1a;
   --senti-card: #1a1a2e;
   --senti-border: #2a2a4a;
@@ -12,14 +23,73 @@
   --senti-blue: #3b82f6;
 }
 
+.dark {
+  --background: 222 47% 6%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 10%;
+  --border: 217 19% 18%;
+  --muted: 222 47% 12%;
+  --muted-foreground: 215 20% 65%;
+  --primary: 243 75% 62%;
+  --primary-foreground: 0 0% 100%;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--senti-dark);
-  color: #fff;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   min-height: 100vh;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+@layer components {
+  .glass-card {
+    @apply border border-border bg-card/70 shadow-sm;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
 }

@@ -66,6 +66,7 @@ export interface ProjectSummaryResponse {
   totalMentions: number;
   timeSeries: SummaryTimePoint[];
   byPlatform: SummaryPlatformPoint[];
+  sentimentCounts?: { completed?: number; pending?: number; failed?: number };
   mentions: SummaryMention[];
 }
 
@@ -150,13 +151,40 @@ export async function runCollection(body: RunCollectionBody): Promise<RunCollect
 export async function getProjectSummary(params: {
   projectId: number;
   keyword?: string;
-  hours?: number;
+  hours?: number | "all" | "total" | "lifetime";
 }): Promise<ProjectSummaryResponse> {
   const q = new URLSearchParams();
   q.set("projectId", String(params.projectId));
   if (params.keyword) q.set("keyword", params.keyword);
-  if (params.hours) q.set("hours", String(params.hours));
+  if (params.hours != null) q.set("hours", String(params.hours));
   return request<ProjectSummaryResponse>(`/api/collect/summary?${q.toString()}`, {
+    method: "GET",
+  });
+}
+
+/**
+ * Fetch metrics for multiple projects at once (optimized for dashboard)
+ * This is much more efficient than calling getProjectSummary for each project
+ */
+export async function getBulkProjectMetrics(params: {
+  projectIds: number[];
+  hours?: number | "all" | "total" | "lifetime";
+}): Promise<{
+  metrics: Record<
+    number,
+    {
+      hoursUsed: number;
+      totalMentions: number;
+      analyzed: number;
+      pending: number;
+      failed: number;
+    }
+  >;
+}> {
+  const q = new URLSearchParams();
+  q.set("projectIds", params.projectIds.join(","));
+  if (params.hours != null) q.set("hours", String(params.hours));
+  return request<any>(`/api/collect/bulk-metrics?${q.toString()}`, {
     method: "GET",
   });
 }

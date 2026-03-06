@@ -30,6 +30,9 @@ router.get("/news", collectController.collectNews);
 // Aggregated project dashboard data
 router.get("/summary", collectController.getProjectSummary);
 
+// Bulk metrics for multiple projects (optimized for dashboard loading)
+router.get("/bulk-metrics", collectController.getBulkProjectMetrics);
+
 // Trigger a run to collect + store mentions for a project
 router.post("/run", collectController.runCollection);
 
