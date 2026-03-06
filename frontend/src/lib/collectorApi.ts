@@ -189,3 +189,82 @@ export async function getBulkProjectMetrics(params: {
   });
 }
 
+/** Influencer types */
+
+export interface MetricsBreakdown {
+  published: string;
+  platform: Platform;
+  isEstimated: boolean;
+  engagement: number;
+  reach: number;
+}
+
+export interface DataQuality {
+  hasActualMetrics: boolean;
+  hasEstimatedMetrics: boolean;
+  overallConfidence: number;
+  sources: string[];
+}
+
+export interface InfluencerPlatformScore {
+  platform: Platform;
+  influenceScore: number;
+  mentions: number;
+  engagement: number;
+  reach: number;
+  isEstimated: boolean;
+}
+
+export interface InfluencerSentimentBreakdown {
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface InfluencerStats {
+  totalMentions: number;
+  totalEngagement: number;
+  totalReach: number;
+  sentimentBreakdown: InfluencerSentimentBreakdown;
+  avgSentiment: number;
+  platforms: Platform[];
+}
+
+export interface Influencer {
+  author: string;
+  platforms: InfluencerPlatformScore[];
+  stats: InfluencerStats;
+  influenceScores: Record<Platform, number>;
+  compositeScore: number;
+  dataQuality: DataQuality;
+  metricsBreakdown: MetricsBreakdown[];
+}
+
+export interface ProjectInfluencersResponse {
+  projectId: number;
+  keyword: string | null;
+  hoursUsed: number;
+  influencers: Influencer[];
+  total: number;
+}
+
+/**
+ * Get top influencers for a project across all platforms
+ */
+export async function getProjectInfluencers(params: {
+  projectId: number;
+  keyword?: string;
+  hours?: number;
+  limit?: number;
+}): Promise<ProjectInfluencersResponse> {
+  const q = new URLSearchParams();
+  q.set("projectId", String(params.projectId));
+  if (params.keyword) q.set("keyword", params.keyword);
+  if (params.hours != null) q.set("hours", String(params.hours));
+  if (params.limit != null) q.set("limit", String(params.limit));
+  return request<ProjectInfluencersResponse>(`/api/collect/influencers?${q.toString()}`, {
+    method: "GET",
+  });
+}
+
+

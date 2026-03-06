@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { useAuth } from "../contexts/AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { InfluencersView } from "../components/InfluencersView";
 import * as projectApi from "../lib/projectApi";
 import * as collectorApi from "../lib/collectorApi";
 
@@ -464,320 +465,350 @@ export function ProjectDashboard() {
             <div className="grid flex-1 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1fr_320px]">
               {/* Center */}
               <section className="flex min-h-0 flex-col gap-4 sm:gap-6 overflow-hidden">
-                <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
-                  {/* Header Section */}
-                  <div className="mb-6 pb-6 border-b border-border/40">
-                    <div className="flex items-center justify-between gap-6">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-foreground mb-1">Analytics Overview</h3>
-                        <p className="text-xs text-muted-foreground">Real-time sentiment and mention tracking</p>
+                {nav === "mentions" && (
+                  <>
+                    <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
+                      {/* Header Section */}
+                      <div className="mb-6 pb-6 border-b border-border/40">
+                        <div className="flex items-center justify-between gap-6">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-bold text-foreground mb-1">Analytics Overview</h3>
+                            <p className="text-xs text-muted-foreground">Real-time sentiment and mention tracking</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                              {loadingSummary ? "—" : summary?.totalMentions ?? 0}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 font-medium">Total Mentions</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                          {loadingSummary ? "—" : summary?.totalMentions ?? 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 font-medium">Total Mentions</p>
+
+                      {/* Tabs Section */}
+                      <div className="mb-6 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setGraphTab("mentions-reach")}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
+                            graphTab === "mentions-reach"
+                              ? "border-blue-600/50 bg-blue-600/10 text-blue-600 dark:text-blue-400"
+                              : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+                          }`}
+                        >
+                          <span className="text-base">📈</span>
+                          <span>Mentions & Reach</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGraphTab("sentiment")}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
+                            graphTab === "sentiment"
+                              ? "border-emerald-600/50 bg-emerald-600/10 text-emerald-600 dark:text-emerald-400"
+                              : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+                          }`}
+                        >
+                          <span className="text-base">💭</span>
+                          <span>Sentiment Breakdown</span>
+                        </button>
+                      </div>
+
+                      {/* Chart Section */}
+                      <div className="h-[380px] w-full rounded-lg border border-border/40 bg-muted/5 p-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {graphTab === "mentions-reach" ? (
+                            <AreaChart
+                              data={mentionsReachData}
+                              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                            >
+                              <defs>
+                                <linearGradient id="mentionsFill" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="reachFill" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.25} />
+                                  <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
+                              <XAxis
+                                dataKey="date"
+                                stroke="#6b7280"
+                                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                                axisLine={{ stroke: "#2a2a4a" }}
+                              />
+                              <YAxis
+                                stroke="#6b7280"
+                                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                                axisLine={{ stroke: "#2a2a4a" }}
+                                tickFormatter={(v) => `${v}`}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: "#1a1a2e",
+                                  border: "1px solid #2a2a4a",
+                                  borderRadius: "10px",
+                                }}
+                                labelStyle={{ color: "#fff" }}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="mentions"
+                                name="Mentions"
+                                stroke="#8b5cf6"
+                                strokeWidth={2}
+                                fill="url(#mentionsFill)"
+                                isAnimationActive
+                                animationDuration={900}
+                                animationEasing="ease-out"
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="reach"
+                                name="Reach (proxy)"
+                                stroke="#38bdf8"
+                                strokeWidth={2}
+                                fill="url(#reachFill)"
+                                isAnimationActive
+                                animationDuration={900}
+                                animationEasing="ease-out"
+                              />
+                            </AreaChart>
+                          ) : sentimentChartData.length === 0 ? (
+                            <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background/40 p-6 text-center">
+                              <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
+                              </p>
+                            </div>
+                          ) : (
+                            <AreaChart
+                              data={sentimentChartData}
+                              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                            >
+                              <defs>
+                                <linearGradient id="positiveFill" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                                  <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="neutralFill" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#6b7280" stopOpacity={0.4} />
+                                  <stop offset="100%" stopColor="#6b7280" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="negativeFill" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
+                                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
+                              <XAxis
+                                dataKey="date"
+                                stroke="#6b7280"
+                                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                                axisLine={{ stroke: "#2a2a4a" }}
+                              />
+                              <YAxis
+                                stroke="#6b7280"
+                                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                                axisLine={{ stroke: "#2a2a4a" }}
+                                tickFormatter={(v) => `${v}`}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: "#1a1a2e",
+                                  border: "1px solid #2a2a4a",
+                                  borderRadius: "8px",
+                                }}
+                                labelStyle={{ color: "#fff" }}
+                                formatter={(value: number) => [Number(value), ""]}
+                                labelFormatter={(label) => `Date: ${label}`}
+                              />
+                              <Legend
+                                wrapperStyle={{ paddingTop: 12 }}
+                                formatter={(value) => (
+                                  <span className="text-sm text-gray-400">{value}</span>
+                                )}
+                                iconType="circle"
+                                iconSize={8}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="positive"
+                                name="Positive"
+                                stroke="#22c55e"
+                                strokeWidth={2}
+                                fill="url(#positiveFill)"
+                                isAnimationActive
+                                animationDuration={1000}
+                                animationEasing="ease-out"
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="neutral"
+                                name="Neutral"
+                                stroke="#6b7280"
+                                strokeWidth={2}
+                                fill="url(#neutralFill)"
+                                isAnimationActive
+                                animationDuration={1000}
+                                animationEasing="ease-out"
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="negative"
+                                name="Negative"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                fill="url(#negativeFill)"
+                                isAnimationActive
+                                animationDuration={1000}
+                                animationEasing="ease-out"
+                              />
+                            </AreaChart>
+                          )}
+                        </ResponsiveContainer>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Tabs Section */}
-                  <div className="mb-6 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setGraphTab("mentions-reach")}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
-                        graphTab === "mentions-reach"
-                          ? "border-blue-600/50 bg-blue-600/10 text-blue-600 dark:text-blue-400"
-                          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
-                      }`}
-                    >
-                      <span className="text-base">📈</span>
-                      <span>Mentions & Reach</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGraphTab("sentiment")}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition duration-200 border ${
-                        graphTab === "sentiment"
-                          ? "border-emerald-600/50 bg-emerald-600/10 text-emerald-600 dark:text-emerald-400"
-                          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
-                      }`}
-                    >
-                      <span className="text-base">💭</span>
-                      <span>Sentiment Breakdown</span>
-                    </button>
-                  </div>
+                    <div className="min-h-0 rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
+                      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                            <span>💬</span>
+                            Feed Stream
+                          </div>
+                          <h3 className="text-xl font-bold text-foreground">Recent mentions</h3>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <select
+                            value={sourceFilter}
+                            onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
+                            className="rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
+                          >
+                            <option value="all">🌐 All sources</option>
+                            <option value="social">📱 Social Media</option>
+                            <option value="news">📰 News</option>
+                            <option value="blogs">✍️ Blogs</option>
+                          </select>
+                          <Link
+                            to="/projects"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                          >
+                            ← Back
+                          </Link>
+                        </div>
+                      </div>
 
-                  {/* Chart Section */}
-                  <div className="h-[380px] w-full rounded-lg border border-border/40 bg-muted/5 p-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {graphTab === "mentions-reach" ? (
-                        <AreaChart
-                          data={mentionsReachData}
-                          margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="mentionsFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="reachFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.25} />
-                              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
-                          <XAxis
-                            dataKey="date"
-                            stroke="#6b7280"
-                            tick={{ fill: "#9ca3af", fontSize: 12 }}
-                            axisLine={{ stroke: "#2a2a4a" }}
-                          />
-                          <YAxis
-                            stroke="#6b7280"
-                            tick={{ fill: "#9ca3af", fontSize: 12 }}
-                            axisLine={{ stroke: "#2a2a4a" }}
-                            tickFormatter={(v) => `${v}`}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1a1a2e",
-                              border: "1px solid #2a2a4a",
-                              borderRadius: "10px",
-                            }}
-                            labelStyle={{ color: "#fff" }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="mentions"
-                            name="Mentions"
-                            stroke="#8b5cf6"
-                            strokeWidth={2}
-                            fill="url(#mentionsFill)"
-                            isAnimationActive
-                            animationDuration={900}
-                            animationEasing="ease-out"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="reach"
-                            name="Reach (proxy)"
-                            stroke="#38bdf8"
-                            strokeWidth={2}
-                            fill="url(#reachFill)"
-                            isAnimationActive
-                            animationDuration={900}
-                            animationEasing="ease-out"
-                          />
-                        </AreaChart>
-                      ) : sentimentChartData.length === 0 ? (
-                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background/40 p-6 text-center">
-                          <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
-                          <p className="mt-1 text-xs text-gray-400">
-                            Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
+                      {loadingSummary ? (
+                        <div className="py-12 text-center">
+                          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
+                            Loading mentions…
+                          </div>
+                        </div>
+                      ) : recentMentions.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
+                          <p className="text-sm font-medium text-foreground">No mentions yet</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Click the <span className="font-semibold text-blue-600 dark:text-blue-400">Run</span> button to collect fresh data.
                           </p>
                         </div>
                       ) : (
-                        <AreaChart
-                          data={sentimentChartData}
-                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="positiveFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="neutralFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#6b7280" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#6b7280" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="negativeFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
-                          <XAxis
-                            dataKey="date"
-                            stroke="#6b7280"
-                            tick={{ fill: "#9ca3af", fontSize: 12 }}
-                            axisLine={{ stroke: "#2a2a4a" }}
-                          />
-                          <YAxis
-                            stroke="#6b7280"
-                            tick={{ fill: "#9ca3af", fontSize: 12 }}
-                            axisLine={{ stroke: "#2a2a4a" }}
-                            tickFormatter={(v) => `${v}`}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1a1a2e",
-                              border: "1px solid #2a2a4a",
-                              borderRadius: "8px",
-                            }}
-                            labelStyle={{ color: "#fff" }}
-                            formatter={(value: number) => [Number(value), ""]}
-                            labelFormatter={(label) => `Date: ${label}`}
-                          />
-                          <Legend
-                            wrapperStyle={{ paddingTop: 12 }}
-                            formatter={(value) => (
-                              <span className="text-sm text-gray-400">{value}</span>
-                            )}
-                            iconType="circle"
-                            iconSize={8}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="positive"
-                            name="Positive"
-                            stroke="#22c55e"
-                            strokeWidth={2}
-                            fill="url(#positiveFill)"
-                            isAnimationActive
-                            animationDuration={1000}
-                            animationEasing="ease-out"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="neutral"
-                            name="Neutral"
-                            stroke="#6b7280"
-                            strokeWidth={2}
-                            fill="url(#neutralFill)"
-                            isAnimationActive
-                            animationDuration={1000}
-                            animationEasing="ease-out"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="negative"
-                            name="Negative"
-                            stroke="#ef4444"
-                            strokeWidth={2}
-                            fill="url(#negativeFill)"
-                            isAnimationActive
-                            animationDuration={1000}
-                            animationEasing="ease-out"
-                          />
-                        </AreaChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="min-h-0 rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200">
-                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                        <span>💬</span>
-                        Feed Stream
-                      </div>
-                      <h3 className="text-xl font-bold text-foreground">Recent mentions</h3>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <select
-                        value={sourceFilter}
-                        onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-                        className="rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
-                      >
-                        <option value="all">🌐 All sources</option>
-                        <option value="social">📱 Social Media</option>
-                        <option value="news">📰 News</option>
-                        <option value="blogs">✍️ Blogs</option>
-                      </select>
-                      <Link
-                        to="/projects"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                      >
-                        ← Back
-                      </Link>
-                    </div>
-                  </div>
-
-                  {loadingSummary ? (
-                    <div className="py-12 text-center">
-                      <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
-                        Loading mentions…
-                      </div>
-                    </div>
-                  ) : recentMentions.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
-                      <p className="text-sm font-medium text-foreground">No mentions yet</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Click the <span className="font-semibold text-blue-600 dark:text-blue-400">Run</span> button to collect fresh data.
-                      </p>
-                    </div>
-                  ) : (
-                    <ul className="max-h-[500px] space-y-3 overflow-y-auto pr-2 scroll-smooth">
-                      {recentMentions.slice(0, 50).map((m) => {
-                        const label = m.sentimentStatus === "completed" && m.sentiment?.label
-                          ? m.sentiment.label
-                          : null;
-                        const displayContent =
-                          (m.content || "").trim() ||
-                          (m.metadata?.title && typeof m.metadata.title === "string"
-                            ? m.metadata.title
-                            : "No content");
-                        return (
-                          <li
-                            key={m.id}
-                            className="rounded-lg border border-border bg-card/50 hover:bg-card/80 hover:border-blue-600/40 p-4 transition duration-200 hover:shadow-md"
-                          >
-                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                              <span className="inline-flex items-center gap-2.5 text-sm">
-                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-600/20 text-xs font-bold">
-                                  {platformIcon(m.platform)}
-                                </span>
-                                <span className="font-semibold text-foreground">{platformLabel(m.platform)}</span>
-                                {m.sourceType === "rss" && (
-                                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">RSS</span>
-                                )}
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(m.publishedAt).toLocaleString()}
-                                </span>
-                              </span>
-                              <span className="flex items-center gap-2">
-                                {label && (
-                                  <span
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${label.toLowerCase() === "positive"
-                                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                        : label.toLowerCase() === "negative"
-                                          ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                                          : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                                      }`}
-                                  >
-                                    {label}
+                        <ul className="max-h-[500px] space-y-3 overflow-y-auto pr-2 scroll-smooth">
+                          {recentMentions.slice(0, 50).map((m) => {
+                            const label = m.sentimentStatus === "completed" && m.sentiment?.label
+                              ? m.sentiment.label
+                              : null;
+                            const displayContent =
+                              (m.content || "").trim() ||
+                              (m.metadata?.title && typeof m.metadata.title === "string"
+                                ? m.metadata.title
+                                : "No content");
+                            return (
+                              <li
+                                key={m.id}
+                                className="rounded-lg border border-border bg-card/50 hover:bg-card/80 hover:border-blue-600/40 p-4 transition duration-200 hover:shadow-md"
+                              >
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                  <span className="inline-flex items-center gap-2.5 text-sm">
+                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-600/20 text-xs font-bold">
+                                      {platformIcon(m.platform)}
+                                    </span>
+                                    <span className="font-semibold text-foreground">{platformLabel(m.platform)}</span>
+                                    {m.sourceType === "rss" && (
+                                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">RSS</span>
+                                    )}
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(m.publishedAt).toLocaleString()}
+                                    </span>
                                   </span>
+                                  <span className="flex items-center gap-2">
+                                    {label && (
+                                      <span
+                                        className={`rounded-full px-3 py-1 text-xs font-bold ${label.toLowerCase() === "positive"
+                                            ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                            : label.toLowerCase() === "negative"
+                                              ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                                              : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                          }`}
+                                      >
+                                        {label}
+                                      </span>
+                                    )}
+                                    {m.sourceUrl ? (
+                                      <a
+                                        href={m.sourceUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                                      >
+                                        Open ↗
+                                      </a>
+                                    ) : null}
+                                  </span>
+                                </div>
+                                <div className="mb-2 text-sm text-foreground line-clamp-2">
+                                  {displayContent}
+                                </div>
+                                {(m.author || (m.metadata?.title && (m.content || "").trim())) && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {m.author ? `By ${m.author}` : m.metadata?.title}
+                                  </div>
                                 )}
-                                {m.sourceUrl ? (
-                                  <a
-                                    href={m.sourceUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
-                                  >
-                                    Open ↗
-                                  </a>
-                                ) : null}
-                              </span>
-                            </div>
-                            <div className="mb-2 text-sm text-foreground line-clamp-2">
-                              {displayContent}
-                            </div>
-                            {(m.author || (m.metadata?.title && (m.content || "").trim())) && (
-                              <div className="text-xs text-muted-foreground">
-                                {m.author ? `By ${m.author}` : m.metadata?.title}
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {nav === "influencers" && (
+                  <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 backdrop-blur p-6 shadow-lg hover:shadow-xl transition duration-200 overflow-y-auto">
+                    <InfluencersView
+                      projectId={projectId}
+                      hours={hours}
+                      keyword={project?.primaryKeyword}
+                      loadingParent={loadingProject || loading}
+                    />
+                  </div>
+                )}
+
+                {nav !== "mentions" && nav !== "influencers" && (
+                  <div className="rounded-2xl border border-dashed border-border bg-gradient-to-br from-blue-600/10 to-emerald-600/10 p-6 flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                      <div className="font-bold text-foreground mb-2 text-lg">🚀 Coming Soon</div>
+                      <div className="text-sm text-muted-foreground">
+                        {nav === "summary" && "Summary and key insights"}
+                        {nav === "analysis" && "Deep analysis and patterns"}
+                        {nav === "sources" && "Source breakdown and trends"}
+                        {nav === "comparison" && "Competitive comparison"}
+                        <p className="mt-2">will be available soon.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Right rail */}
@@ -831,7 +862,7 @@ export function ProjectDashboard() {
                   </div>
                 </div>
 
-                {nav !== "mentions" && (
+                {nav !== "mentions" && nav !== "influencers" && (
                   <div className="rounded-2xl border border-dashed border-border bg-gradient-to-br from-blue-600/10 to-emerald-600/10 p-6">
                     <div className="font-bold text-foreground mb-2">🚀 Coming Soon</div>
                     <div className="text-sm text-muted-foreground leading-relaxed">

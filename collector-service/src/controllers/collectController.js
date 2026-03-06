@@ -733,6 +733,41 @@ async function getBulkProjectMetrics(req, res, next) {
   }
 }
 
+/**
+ * Get top influencers for a project
+ */
+async function getProjectInfluencers(req, res, next) {
+  try {
+    const { projectId: projectIdRaw, hours: hoursRaw, keyword, limit: limitRaw } = req.query;
+
+    if (!projectIdRaw) {
+      return res.status(400).json({ error: "Query parameter 'projectId' is required" });
+    }
+    const projectId = parseInt(String(projectIdRaw), 10);
+    if (!Number.isFinite(projectId)) {
+      return res.status(400).json({ error: "Query parameter 'projectId' must be a number" });
+    }
+
+    const hoursUsed = hoursRaw ? parseInt(String(hoursRaw), 10) : DEFAULT_SUMMARY_HOURS;
+    const limit = limitRaw ? Math.min(parseInt(String(limitRaw), 10) || 50, 500) : 50;
+
+    const { getTopInfluencersCrossPlatform } = require("../services/influencerService");
+
+    const influencers = await getTopInfluencersCrossPlatform(projectId, hoursUsed, keyword, limit);
+
+    res.status(200).json({
+      projectId,
+      keyword: keyword ?? null,
+      hoursUsed,
+      influencers,
+      total: influencers.length,
+    });
+  } catch (err) {
+    console.error("[Collector] Error fetching project influencers:", err);
+    next(err);
+  }
+}
+
 module.exports = {
   collectReddit,
   collectTwitter,
@@ -743,5 +778,6 @@ module.exports = {
   getProjectSummary,
   getBulkProjectMetrics,
   runCollection,
+  getProjectInfluencers,
 };
 
