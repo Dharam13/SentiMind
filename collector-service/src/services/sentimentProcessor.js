@@ -131,6 +131,11 @@ async function processPendingBatch() {
 function startSentimentProcessor() {
   if (intervalId) return;
 
+  if (!env.sentimentProcessorEnabled) {
+    console.log("[SentimentProcessor] Disabled by config (SENTIMENT_PROCESSOR_ENABLED=false)");
+    return;
+  }
+
   const intervalMs = env.sentimentPollIntervalMs || 30_000;
   if (!env.sentimentServiceUrl) {
     console.warn("[SentimentProcessor] SENTIMENT_SERVICE_URL not set; sentiment processor disabled");

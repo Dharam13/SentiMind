@@ -48,6 +48,7 @@ const env = {
   sentimentServiceUrl: optionalEnv("SENTIMENT_SERVICE_URL", "http://localhost:8030").replace(/\/$/, ""),
   sentimentPollIntervalMs: optionalIntEnv("SENTIMENT_POLL_INTERVAL_MS", 30_000),
   sentimentBatchSize: optionalIntEnv("SENTIMENT_BATCH_SIZE", 10),
+  sentimentProcessorEnabled: String(optionalEnv("SENTIMENT_PROCESSOR_ENABLED", "true")).toLowerCase() === "true",
 };
 
 module.exports = { env };
