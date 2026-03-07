@@ -46,6 +46,7 @@ app.use(
   createProxyMiddleware({
     target: env.authServiceUrl,
     changeOrigin: true,
+    pathRewrite: { "^/": "/auth/" },
     timeout: 30000,
     proxyTimeout: 30000,
     on: {
@@ -69,6 +70,7 @@ app.use(
   createProxyMiddleware({
     target: env.authServiceUrl,
     changeOrigin: true,
+    pathRewrite: { "^/": "/projects/" },
     timeout: 30000,
     proxyTimeout: 30000,
     on: {

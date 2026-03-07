@@ -408,11 +408,6 @@ export function Projects() {
               const m = metricsByProject[project.id];
               const analyzedPct =
                 m && m.totalMentions > 0 ? Math.round((m.analyzed / m.totalMentions) * 100) : 0;
-              const statusClasses =
-                project.status === "ACTIVE"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  : "bg-muted text-muted-foreground";
-
               return (
                 <div
                   key={project.id}
@@ -433,8 +428,8 @@ export function Projects() {
                       </div>
                       <div className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold whitespace-nowrap ${
                         project.status === "ACTIVE"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400"
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : "bg-muted text-muted-foreground"
                       }`}>
                         {project.status === "ACTIVE" ? "● Active" : "○ Inactive"}
                       </div>

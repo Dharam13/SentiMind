@@ -79,7 +79,6 @@ export function InfluencersView({
   const [platformFilter, setPlatformFilter] = useState<Platform | "all">("all");
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>("all");
   const [minScore, setMinScore] = useState(0);
-  const [maxMentions, setMaxMentions] = useState<number | null>(null);
 
   // Load influencers
   useEffect(() => {
@@ -164,8 +163,6 @@ export function InfluencersView({
 
     return sorted;
   }, [influencers, platformFilter, sortBy, minScore, sentimentFilter]);
-
-  const maxMentionsInData = Math.max(...influencers.map((i) => i.stats.totalMentions), 1);
 
   return (
     <div className="flex flex-col gap-6">
@@ -450,7 +447,7 @@ export function InfluencersView({
                             <span className="text-sm text-muted-foreground">Reach (K):</span>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-foreground">
-                                {(influencer.stats.totalReach / 1000).toLocaleString(undefined, { maxFractionDigits: 1 })}
+                                {(influencer.stats.totalReach / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}
                               </span>
                               {influencer.dataQuality.hasEstimatedMetrics && !influencer.dataQuality.hasActualMetrics && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
@@ -521,7 +518,7 @@ export function InfluencersView({
                               </div>
                               <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
                                 <div>💬 Engagement: {p.engagement.toLocaleString()}</div>
-                                <div>📡 Reach: {(p.reach / 1000).toLocaleString(undefined, { maxFractionDigits: 1 })}K</div>
+                                <div>📡 Reach: {(p.reach / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K</div>
                               </div>
                               {p.isEstimated && (
                                 <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
