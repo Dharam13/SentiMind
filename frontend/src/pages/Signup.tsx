@@ -48,24 +48,24 @@ export function Signup() {
   if (success) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+        <div className="absolute inset-0 grid-bg opacity-40" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
         <Header />
         <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-14">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md rounded-2xl border border-border bg-card/90 p-8 text-center shadow-xl backdrop-blur"
-          >
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-3xl text-green-400">
-              ✓
+            className="w-full max-w-md rounded-2xl border border-border/60 bg-card/80 p-8 text-center shadow-neon-lg backdrop-blur-xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neon-emerald/20 border border-neon-emerald/30 text-3xl text-neon-emerald">
+              \u2713
             </div>
-            <h1 className="mb-2 text-2xl font-bold text-foreground">Account created</h1>
+            <h1 className="mb-2 text-2xl font-bold gradient-text">Account created</h1>
             <p className="mb-6 text-muted-foreground">
               You can now sign in with your email and password.
             </p>
             <Link
               to="/login"
-              className="inline-block w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-sm transition hover:opacity-95"
+              className="inline-block w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-neon transition hover:shadow-neon-lg"
             >
               Go to sign in
             </Link>
@@ -77,21 +77,21 @@ export function Signup() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+      <div className="absolute inset-0 grid-bg opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
       <Header />
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-16 pt-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md rounded-2xl border border-border bg-card/90 p-8 shadow-xl backdrop-blur"
-        >
+          className="w-full max-w-md rounded-2xl border border-border/60 bg-card/80 p-8 shadow-neon-lg backdrop-blur-xl">
           <Link
             to="/"
             className="mb-6 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             ← Back to home
           </Link>
-          <h1 className="mb-2 text-3xl font-bold text-foreground">Create account</h1>
+          <h1 className="mb-2 text-3xl font-bold gradient-text">Create account</h1>
           <p className="mb-6 text-muted-foreground">
             Join Sentimind to track your brand sentiment
           </p>
@@ -115,7 +115,7 @@ export function Signup() {
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                   placeholder="Jane"
                 />
               </div>
@@ -131,7 +131,7 @@ export function Signup() {
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                   placeholder="Doe (optional)"
                 />
               </div>
@@ -149,7 +149,7 @@ export function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                 placeholder="you@example.com"
               />
             </div>
@@ -167,14 +167,14 @@ export function Signup() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                 placeholder="At least 8 characters"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
+              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-neon transition hover:shadow-neon-lg hover:scale-[1.01] disabled:opacity-60"
             >
               {loading ? "Creating account…" : "Create account"}
             </button>

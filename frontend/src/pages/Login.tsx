@@ -39,13 +39,14 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+      <div className="absolute inset-0 grid-bg opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
       <Header />
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md rounded-2xl border border-border bg-card/90 p-8 shadow-xl backdrop-blur"
+          className="w-full max-w-md rounded-2xl border border-border/60 bg-card/80 p-8 shadow-neon-lg backdrop-blur-xl"
         >
           <Link
             to="/"
@@ -53,7 +54,7 @@ export function Login() {
           >
             ← Back to home
           </Link>
-          <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome back</h1>
+          <h1 className="mb-2 text-3xl font-bold gradient-text">Welcome back</h1>
           <p className="mb-6 text-muted-foreground">Sign in to your Sentimind account</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -74,7 +75,7 @@ export function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                 placeholder="you@example.com"
               />
             </div>
@@ -91,14 +92,14 @@ export function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
                 placeholder="••••••••"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground shadow-neon transition hover:shadow-neon-lg hover:scale-[1.01] disabled:opacity-60"
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>

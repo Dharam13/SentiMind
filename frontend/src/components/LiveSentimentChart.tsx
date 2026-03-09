@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   AreaChart,
   Area,
@@ -33,26 +33,17 @@ function generateLiveData() {
 export function LiveSentimentChart() {
   const [data] = useState(() => generateLiveData());
 
-  const chartConfig = useMemo(
-    () => ({
-      positive: { color: "#22c55e" },
-      neutral: { color: "#6b7280" },
-      negative: { color: "#ef4444" },
-    }),
-    []
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6 }}
-      className="rounded-2xl border border-senti-border bg-senti-card p-6 shadow-xl"
+      className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-6 shadow-neon"
     >
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-white">Live Sentiment Trends</h2>
-        <p className="text-sm text-gray-400">Real-time brand sentiment analysis</p>
+        <h2 className="text-xl font-bold text-foreground">Live Sentiment Trends</h2>
+        <p className="text-sm text-muted-foreground">Real-time brand sentiment analysis</p>
       </div>
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -62,46 +53,47 @@ export function LiveSentimentChart() {
           >
             <defs>
               <linearGradient id="positiveFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="neutralFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6b7280" stopOpacity={0.4} />
                 <stop offset="100%" stopColor="#6b7280" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="negativeFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="time"
-              stroke="#6b7280"
-              tick={{ fill: "#9ca3af", fontSize: 12 }}
-              axisLine={{ stroke: "#2a2a4a" }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
             />
             <YAxis
-              stroke="#6b7280"
-              tick={{ fill: "#9ca3af", fontSize: 12 }}
-              axisLine={{ stroke: "#2a2a4a" }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
               domain={[0, 100]}
               tickFormatter={(v) => `${v}`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1a1a2e",
-                border: "1px solid #2a2a4a",
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
                 borderRadius: "8px",
+                color: "hsl(var(--foreground))",
               }}
-              labelStyle={{ color: "#fff" }}
+              labelStyle={{ color: "hsl(var(--foreground))" }}
               formatter={(value: number) => [value.toFixed(1), ""]}
               labelFormatter={(label) => `Time: ${label}`}
             />
             <Legend
               wrapperStyle={{ paddingTop: 12 }}
               formatter={(value) => (
-                <span className="text-sm text-gray-300">{value}</span>
+                <span style={{ color: "hsl(var(--muted-foreground))", fontSize: "0.875rem" }}>{value}</span>
               )}
               iconType="circle"
               iconSize={8}
@@ -110,7 +102,7 @@ export function LiveSentimentChart() {
               type="monotone"
               dataKey="positive"
               name="Positive"
-              stroke={chartConfig.positive.color}
+              stroke={"#10b981"}
               strokeWidth={2}
               fill="url(#positiveFill)"
               isAnimationActive
@@ -121,7 +113,7 @@ export function LiveSentimentChart() {
               type="monotone"
               dataKey="neutral"
               name="Neutral"
-              stroke={chartConfig.neutral.color}
+              stroke={"#6b7280"}
               strokeWidth={2}
               fill="url(#neutralFill)"
               isAnimationActive
@@ -132,7 +124,7 @@ export function LiveSentimentChart() {
               type="monotone"
               dataKey="negative"
               name="Negative"
-              stroke={chartConfig.negative.color}
+              stroke={"#f43f5e"}
               strokeWidth={2}
               fill="url(#negativeFill)"
               isAnimationActive

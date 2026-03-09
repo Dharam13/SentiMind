@@ -2,59 +2,68 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Header } from "../components/Header";
 import { LiveSentimentChart } from "../components/LiveSentimentChart";
+import { Zap, BarChart3, Globe, Star, Lightbulb, Bell, ArrowRight, Newspaper } from "lucide-react";
 
 const sources = [
   { icon: "𝕏", label: "Twitter" },
   { icon: "r/", label: "Reddit" },
-  { icon: "📰", label: "News" },
+  { icon: <Newspaper className="h-3.5 w-3.5" />, label: "News" },
   { icon: "▶", label: "YouTube" },
   { icon: "M", label: "Medium" },
 ];
 
 const stats = [
-  { value: "1.2M+", label: "Mentions Processed", color: "text-blue-600 dark:text-blue-400" },
-  { value: "98%", label: "Detection Accuracy", color: "text-emerald-600 dark:text-emerald-400" },
-  { value: "5+", label: "Data Sources", color: "text-indigo-600 dark:text-indigo-400" },
+  { value: "1.2M+", label: "Mentions Processed", color: "text-primary dark:text-neon-cyan" },
+  { value: "98%", label: "Detection Accuracy", color: "text-neon-emerald" },
+  { value: "5+", label: "Data Sources", color: "text-accent dark:text-neon-violet" },
 ];
 
 const features = [
   {
     title: "Real-Time Tracking",
     description: "Monitor brand mentions across multiple platforms and track sentiment changes as they happen.",
-    icon: "⚡",
+    icon: <Zap className="h-6 w-6" />,
+    color: "text-neon-amber",
   },
   {
     title: "Sentiment Analysis",
     description: "Understand public perception with AI-powered sentiment analysis and emotional intelligence scoring.",
-    icon: "📊",
+    icon: <BarChart3 className="h-6 w-6" />,
+    color: "text-neon-cyan",
   },
   {
     title: "Multi-Platform Monitoring",
     description: "Track mentions from Twitter, Reddit, News, YouTube, Medium, LinkedIn, and more.",
-    icon: "🌐",
+    icon: <Globe className="h-6 w-6" />,
+    color: "text-neon-violet",
   },
   {
     title: "Influencer Identification",
     description: "Identify key influencers discussing your brand and measure their impact on conversations.",
-    icon: "⭐",
+    icon: <Star className="h-6 w-6" />,
+    color: "text-neon-rose",
   },
   {
     title: "Actionable Insights",
     description: "Get detailed reports and recommendations to improve your brand strategy and reputation.",
-    icon: "💡",
+    icon: <Lightbulb className="h-6 w-6" />,
+    color: "text-neon-emerald",
   },
   {
     title: "Custom Alerts",
     description: "Set up customized notifications for specific keywords, sentiment patterns, or spike events.",
-    icon: "🔔",
+    icon: <Bell className="h-6 w-6" />,
+    color: "text-neon-amber",
   },
 ];
 
 export function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:64px_64px] opacity-40 dark:opacity-20" />
+      {/* Grid background pattern */}
+      <div className="absolute inset-0 grid-bg opacity-60" />
+      {/* Radial glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent" />
       
       <Header />
 
@@ -83,7 +92,7 @@ export function Landing() {
               className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl"
             >
               Understand Your Brand's{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
+              <span className="gradient-text">
                 True Voice
               </span>
             </motion.h1>
@@ -117,10 +126,10 @@ export function Landing() {
             >
               <Link
                 to="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-lg font-semibold text-white shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-neon-lg hover:shadow-neon hover:scale-105 transition duration-300"
               >
                 Get Started Free
-                <span>→</span>
+                <ArrowRight className="h-5 w-5" />
               </Link>
               <button
                 type="button"
@@ -175,7 +184,7 @@ export function Landing() {
         </section>
 
         {/* Live Chart Section */}
-        <section className="relative border-t border-border px-4 py-16 bg-muted/20">
+        <section className="relative border-t border-border/40 px-4 py-16 bg-muted/10">
           <div className="mx-auto max-w-7xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -229,9 +238,9 @@ export function Landing() {
                   whileHover={{ y: -4, transition: { duration: 0.2 } }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.08 }}
-                  className="group rounded-xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-6 sm:p-8 hover:border-primary/50 hover:shadow-lg transition duration-300"
+                  className="group rounded-xl border border-border bg-card/80 backdrop-blur-sm p-6 sm:p-8 hover:border-primary/40 hover:shadow-neon transition-all duration-300"
                 >
-                  <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-2xl group-hover:bg-primary/10 transition">
+                  <div className={`mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-muted/50 ${feature.color} group-hover:bg-primary/10 transition-all duration-300`}>
                     {feature.icon}
                   </div>
                   <h3 className="mb-3 text-xl font-semibold text-foreground">
@@ -247,7 +256,7 @@ export function Landing() {
         </section>
 
         {/* CTA Section */}
-        <section className="relative border-t border-border px-4 py-16 sm:py-20 bg-gradient-to-b from-primary/5 to-transparent">
+        <section className="relative border-t border-border/40 px-4 py-16 sm:py-20 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="mx-auto max-w-3xl text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -263,17 +272,17 @@ export function Landing() {
               </p>
               <Link
                 to="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-4 text-lg font-semibold text-white shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-10 py-4 text-lg font-semibold text-primary-foreground shadow-neon-lg hover:shadow-neon hover:scale-105 transition duration-300"
               >
                 Start Free Trial
-                <span>→</span>
+                <ArrowRight className="h-5 w-5" />
               </Link>
             </motion.div>
           </div>
         </section>
 
         {/* Footer */}
-        <footer className="relative border-t border-border px-4 py-12 bg-muted/30">
+        <footer className="relative border-t border-border/40 px-4 py-12 bg-muted/10">
           <div className="mx-auto max-w-6xl">
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 mb-8">
               <div>

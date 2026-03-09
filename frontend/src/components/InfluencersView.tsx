@@ -1,5 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import * as collectorApi from "../lib/collectorApi";
+import {
+  Users, BarChart3, Target, MessageSquare, SlidersHorizontal,
+  Globe, Radio, Zap, ThumbsUp, ThumbsDown, Minus,
+  ChevronDown, ChevronRight
+} from "lucide-react";
 
 type Platform = collectorApi.Platform;
 type SortBy = "composite" | "mentions" | "engagement" | "reach" | "sentiment";
@@ -44,23 +49,23 @@ function platformIcon(platform: string) {
     case "linkedin":
       return "in";
     case "news":
-      return "📰";
+      return "N";
     default:
-      return "•";
+      return "\u2022";
   }
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return "text-emerald-600 dark:text-emerald-400 bg-emerald-600/10";
-  if (score >= 60) return "text-blue-600 dark:text-blue-400 bg-blue-600/10";
-  if (score >= 40) return "text-amber-600 dark:text-amber-400 bg-amber-600/10";
-  return "text-orange-600 dark:text-orange-400 bg-orange-600/10";
+  if (score >= 80) return "text-neon-emerald bg-neon-emerald/10";
+  if (score >= 60) return "text-primary bg-primary/10";
+  if (score >= 40) return "text-neon-amber bg-neon-amber/10";
+  return "text-neon-rose bg-neon-rose/10";
 }
 
 function getSentimentColor(sentiment: number) {
-  if (sentiment > 0.3) return "text-emerald-600 dark:text-emerald-400";
-  if (sentiment < -0.3) return "text-red-600 dark:text-red-400";
-  return "text-amber-600 dark:text-amber-400";
+  if (sentiment > 0.3) return "text-neon-emerald";
+  if (sentiment < -0.3) return "text-neon-rose";
+  return "text-neon-amber";
 }
 
 export function InfluencersView({
@@ -168,9 +173,9 @@ export function InfluencersView({
     <div className="flex flex-col gap-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card/50 hover:bg-card/80 p-4 transition">
-          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-            👥 Total Influencers
+        <div className="stat-card">
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-neon-cyan" /> Total Influencers
           </div>
           <div className="text-3xl font-bold text-foreground">
             {loading ? "—" : influencers.length}
@@ -178,11 +183,11 @@ export function InfluencersView({
           <div className="text-[11px] text-muted-foreground mt-1">Across all platforms</div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card/50 hover:bg-card/80 p-4 transition">
-          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-            📊 Avg Score
+        <div className="stat-card">
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5 text-neon-violet" /> Avg Score
           </div>
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="text-3xl font-bold text-neon-violet">
             {loading
               ? "—"
               : influencers.length > 0
@@ -194,9 +199,9 @@ export function InfluencersView({
           <div className="text-[11px] text-muted-foreground mt-1">Influence score</div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card/50 hover:bg-card/80 p-4 transition">
-          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-            🎯 Top Influencer
+        <div className="stat-card">
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5 text-neon-emerald" /> Top Influencer
           </div>
           <div className="text-lg font-bold text-foreground truncate">
             {loading
@@ -212,11 +217,11 @@ export function InfluencersView({
           )}
         </div>
 
-        <div className="rounded-xl border border-border bg-card/50 hover:bg-card/80 p-4 transition">
-          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-            💬 Total Mentions
+        <div className="stat-card">
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5 text-neon-rose" /> Total Mentions
           </div>
-          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="text-3xl font-bold text-neon-rose">
             {loading
               ? "—"
               : influencers.reduce((sum, i) => sum + i.stats.totalMentions, 0)}
@@ -226,10 +231,10 @@ export function InfluencersView({
       </div>
 
       {/* Filters and Sorting */}
-      <div className="rounded-xl border border-border bg-card/50 p-4 space-y-4">
+      <div className="rounded-xl border border-border/60 bg-card/50 backdrop-blur p-4 space-y-4">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            🔧 Filters & Sorting
+          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Filters & Sorting
           </span>
         </div>
 
@@ -242,7 +247,7 @@ export function InfluencersView({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="w-full rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
+              className="w-full rounded-lg border border-border/60 bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
             >
               <option value="composite">Composite Score</option>
               <option value="mentions">Mentions Count</option>
@@ -260,7 +265,7 @@ export function InfluencersView({
             <select
               value={platformFilter}
               onChange={(e) => setPlatformFilter(e.target.value as Platform | "all")}
-              className="w-full rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
+              className="w-full rounded-lg border border-border/60 bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
             >
               <option value="all">All Platforms</option>
               <option value="twitter">Twitter</option>
@@ -280,7 +285,7 @@ export function InfluencersView({
             <select
               value={sentimentFilter}
               onChange={(e) => setSentimentFilter(e.target.value as SentimentFilter)}
-              className="w-full rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition"
+              className="w-full rounded-lg border border-border/60 bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
             >
               <option value="all">All Sentiments</option>
               <option value="positive">Positive</option>
@@ -301,7 +306,7 @@ export function InfluencersView({
               max="100"
               value={minScore}
               onChange={(e) => setMinScore(parseInt(e.target.value, 10))}
-              className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-blue-600"
+              className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
             />
           </div>
         </div>
@@ -317,7 +322,7 @@ export function InfluencersView({
       {loading || loadingParent ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
           <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
             Loading influencers…
           </div>
         </div>
@@ -337,7 +342,7 @@ export function InfluencersView({
             return (
               <div
                 key={influencer.author}
-                className="rounded-xl border border-border bg-card/50 hover:bg-card/80 transition overflow-hidden"
+                className="rounded-xl border border-border/60 bg-card/50 hover:bg-card/80 transition overflow-hidden hover:border-primary/30 hover:shadow-neon"
               >
                 {/* Main Row */}
                 <button
@@ -351,7 +356,7 @@ export function InfluencersView({
                     {/* Left: Author info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/20 text-sm font-bold flex-shrink-0">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold flex-shrink-0">
                           {platformIcon(topPlatform?.platform || "twitter")}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -386,8 +391,8 @@ export function InfluencersView({
                       })()}
 
                       {/* Engagement Badge */}
-                      <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground">
-                        💬 {influencer.stats.totalEngagement.toLocaleString()}
+                      <div className="rounded-lg border border-border/60 bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <MessageSquare className="h-3 w-3" /> {influencer.stats.totalEngagement.toLocaleString()}
                       </div>
 
                       {/* Sentiment Indicator */}
@@ -397,19 +402,18 @@ export function InfluencersView({
                         )}`}
                       >
                         {influencer.stats.avgSentiment > 0.2
-                          ? "😊 Positive"
+                          ? <><ThumbsUp className="h-3 w-3 inline" /> Positive</>
                           : influencer.stats.avgSentiment < -0.2
-                          ? "😞 Negative"
-                          : "😐 Neutral"}
+                          ? <><ThumbsDown className="h-3 w-3 inline" /> Negative</>
+                          : <><Minus className="h-3 w-3 inline" /> Neutral</>}
                       </div>
 
                       {/* Expand Icon */}
-                      <button
-                        type="button"
-                        className="text-xl transition-transform duration-200 text-muted-foreground flex-shrink-0"
+                      <span
+                        className="transition-transform duration-200 text-muted-foreground flex-shrink-0"
                       >
-                        {isExpanded ? "▼" : "▶"}
-                      </button>
+                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -420,8 +424,8 @@ export function InfluencersView({
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {/* Metrics */}
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                          📊 Metrics
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                          <BarChart3 className="h-3.5 w-3.5" /> Metrics
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
@@ -430,7 +434,7 @@ export function InfluencersView({
                               {influencer.stats.totalMentions}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between rounded-lg bg-card/50 border border-border px-3 py-2">
+                          <div className="flex items-center justify-between rounded-lg bg-card/50 border border-border/60 px-3 py-2">
                             <span className="text-sm text-muted-foreground">Engagement:</span>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-foreground">
@@ -443,7 +447,7 @@ export function InfluencersView({
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center justify-between rounded-lg bg-card/50 border border-border px-3 py-2">
+                          <div className="flex items-center justify-between rounded-lg bg-card/50 border border-border/60 px-3 py-2">
                             <span className="text-sm text-muted-foreground">Reach (K):</span>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-foreground">
@@ -492,18 +496,18 @@ export function InfluencersView({
 
                       {/* Platforms */}
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                          🌐 Platforms
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                          <Globe className="h-3.5 w-3.5" /> Platforms
                         </div>
                         <div className="space-y-2">
                           {influencer.platforms.map((p) => (
                             <div
                               key={p.platform}
-                              className="flex flex-col rounded-lg bg-card/50 border border-border px-3 py-2 gap-1"
+                              className="flex flex-col rounded-lg bg-card/50 border border-border/60 px-3 py-2 gap-1"
                             >
                               <div className="flex items-center justify-between">
                                 <span className="inline-flex items-center gap-2 text-sm">
-                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-600/20 text-xs font-bold">
+                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold">
                                     {platformIcon(p.platform)}
                                   </span>
                                   <span className="font-medium">{platformLabel(p.platform)}</span>
@@ -517,12 +521,12 @@ export function InfluencersView({
                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
-                                <div>💬 Engagement: {p.engagement.toLocaleString()}</div>
-                                <div>📡 Reach: {(p.reach / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K</div>
+                                <div className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {p.engagement.toLocaleString()}</div>
+                                <div className="flex items-center gap-1"><Radio className="h-3 w-3" /> {(p.reach / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K</div>
                               </div>
                               {p.isEstimated && (
-                                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
-                                  ⚡ Estimated metrics
+                                <div className="text-[10px] text-neon-amber font-semibold flex items-center gap-1">
+                                  <Zap className="h-3 w-3" /> Estimated metrics
                                 </div>
                               )}
                             </div>
@@ -532,8 +536,8 @@ export function InfluencersView({
 
                       {/* Sentiment Breakdown */}
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                          💭 Sentiment
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                          <MessageSquare className="h-3.5 w-3.5" /> Sentiment
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -541,7 +545,7 @@ export function InfluencersView({
                               <span className="inline-block h-2 w-2 rounded-full bg-emerald-600/40"></span>
                               <span className="text-muted-foreground">Positive</span>
                             </span>
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="font-semibold text-neon-emerald">
                               {influencer.stats.sentimentBreakdown.positive}
                             </span>
                           </div>
@@ -550,7 +554,7 @@ export function InfluencersView({
                               <span className="inline-block h-2 w-2 rounded-full bg-amber-600/40"></span>
                               <span className="text-muted-foreground">Neutral</span>
                             </span>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">
+                            <span className="font-semibold text-neon-amber">
                               {influencer.stats.sentimentBreakdown.neutral}
                             </span>
                           </div>
@@ -559,7 +563,7 @@ export function InfluencersView({
                               <span className="inline-block h-2 w-2 rounded-full bg-red-600/40"></span>
                               <span className="text-muted-foreground">Negative</span>
                             </span>
-                            <span className="font-semibold text-red-600 dark:text-red-400">
+                            <span className="font-semibold text-neon-rose">
                               {influencer.stats.sentimentBreakdown.negative}
                             </span>
                           </div>

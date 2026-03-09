@@ -1,146 +1,158 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Light theme - improved for readability and contrast */
-  --background: 0 0% 97%;
-  --foreground: 0 0% 10%;
+  /* Light theme - clean minimal with subtle accents */
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --border: 0 0% 78%;
-  --muted: 0 0% 94%;
-  --muted-foreground: 0 0% 38%;
-  --primary: 243 75% 59%;
+  --border: 214 20% 88%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --primary: 189 94% 43%;
   --primary-foreground: 0 0% 100%;
-
-  /* Secondary colors for stat cards - matching dashboard design */
-  --stat-blue: 217 91% 60%;
-  --stat-green: 142 76% 36%;
-  --stat-purple: 280 85% 65%;
-  --stat-orange: 38 92% 50%;
-  --stat-red: 0 84% 60%;
-
-  /* Backgrounds for colored stat cards */
-  --stat-blue-bg: 217 100% 97%;
-  --stat-green-bg: 142 71% 94%;
-  --stat-purple-bg: 280 84% 97%;
-  --stat-orange-bg: 38 97% 95%;
-
-  /* Legacy vars (kept for older styles that still reference these) */
-  --senti-dark: #0f0f1a;
-  --senti-card: #1a1a2e;
-  --senti-border: #2a2a4a;
-  --senti-purple: #8b5cf6;
-  --senti-blue: #3b82f6;
+  --accent: 263 70% 50%;
+  --accent-foreground: 0 0% 100%;
+  --neon-glow: 189 94% 43%;
 }
 
 .dark {
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 10%;
-  --border: 217 19% 18%;
-  --muted: 222 47% 12%;
-  --muted-foreground: 215 20% 65%;
-  --primary: 243 75% 62%;
-  --primary-foreground: 0 0% 100%;
+  /* Dark tech theme - deep navy with neon cyan accents */
+  --background: 222 47% 4%;
+  --foreground: 210 40% 96%;
+  --card: 223 40% 7%;
+  --border: 220 20% 14%;
+  --muted: 223 35% 10%;
+  --muted-foreground: 218 15% 55%;
+  --primary: 189 94% 43%;
+  --primary-foreground: 222 47% 4%;
+  --accent: 263 70% 58%;
+  --accent-foreground: 0 0% 100%;
+  --neon-glow: 189 94% 43%;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar styles */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.4);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.6);
+  background: hsl(var(--muted-foreground) / 0.5);
 }
-
-/* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.25);
+  background: hsl(var(--primary) / 0.2);
 }
-
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.45);
+  background: hsl(var(--primary) / 0.4);
 }
 
 @layer components {
   .glass-card {
-    @apply border border-border bg-card shadow-sm;
+    @apply border border-border bg-card/80 backdrop-blur-sm shadow-sm;
+  }
+  .dark .glass-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.6) 100%);
+    border-color: hsl(var(--border));
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.05);
   }
 
-  /* Light theme card styling */
-  @supports (color: hsl(0 0% 100%)) and (selector(:not(.dark))) {
-    .glass-card {
-      @apply shadow-lg;
-    }
+  /* Neon glow utilities */
+  .neon-border {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  .dark .neon-border {
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.1), inset 0 0 8px hsl(var(--primary) / 0.03);
   }
 
-  /* Enhanced card styling for light theme */
-  .bg-card {
-    @apply shadow-sm;
+  .neon-glow {
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.15), 0 0 4px hsl(var(--primary) / 0.1);
+  }
+  .dark .neon-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.25), 0 0 8px hsl(var(--primary) / 0.15);
   }
 
-  .dark .bg-card {
-    @apply shadow-none;
+  .neon-text {
+    color: hsl(var(--primary));
+  }
+  .dark .neon-text {
+    text-shadow: 0 0 12px hsl(var(--primary) / 0.4);
   }
 
-  /* Stat card styles with colors */
-  .stat-card-blue {
-    @apply bg-[hsl(var(--stat-blue-bg))] border-[hsl(var(--stat-blue))] text-[hsl(var(--stat-blue))];
+  /* Gradient text for branding */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-violet-500;
   }
 
-  .stat-card-green {
-    @apply bg-[hsl(var(--stat-green-bg))] border-[hsl(var(--stat-green))] text-[hsl(var(--stat-green))];
+  /* Grid background pattern */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .dark .grid-bg {
+    background-image:
+      linear-gradient(to right, hsl(var(--primary) / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.04) 1px, transparent 1px);
   }
 
-  .stat-card-purple {
-    @apply bg-[hsl(var(--stat-purple-bg))] border-[hsl(var(--stat-purple))] text-[hsl(var(--stat-purple))];
+  /* Stat card base */
+  .stat-card {
+    @apply rounded-xl border border-border bg-card/80 p-5 transition-all duration-300;
   }
-
-  .stat-card-orange {
-    @apply bg-[hsl(var(--stat-orange-bg))] border-[hsl(var(--stat-orange))] text-[hsl(var(--stat-orange))];
+  .dark .stat-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+  .stat-card:hover {
+    @apply shadow-md -translate-y-0.5;
+  }
+  .dark .stat-card:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.1);
   }
 
   @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
-
   .animate-shimmer {
     animation: shimmer 2s infinite;
   }
+
+  @keyframes pulse-neon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .animate-pulse-neon {
+    animation: pulse-neon 2s ease-in-out infinite;
+  }
 }
 
-/* Keep autofill styling consistent with themed inputs */
+/* Autofill styles */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -157,43 +169,13 @@ select:-webkit-autofill:focus {
   transition: background-color 9999s ease-in-out 0s;
 }
 
-/* Enhanced input styling for light theme */
-input,
-textarea,
-select {
+input, textarea, select {
   @apply text-foreground placeholder:text-muted-foreground;
 }
-
-input:focus,
-textarea:focus,
-select:focus {
-  @apply border-primary;
+input:focus, textarea:focus, select:focus {
+  @apply border-primary outline-none ring-1 ring-primary/30;
 }
 
-/* Text styling hierarchy */
 h1, h2, h3, h4, h5, h6 {
   @apply text-foreground;
-}
-
-/* Light theme specific enhancements */
-@supports (color: hsl(0 0% 100%)) and (selector(:not(.dark))) {
-  body {
-    @apply bg-background text-foreground;
-  }
-
-  input,
-  textarea,
-  select {
-    @apply bg-card border border-border text-foreground;
-  }
-
-  input:focus,
-  textarea:focus,
-  select:focus {
-    @apply ring-2 ring-primary/30 border-primary;
-  }
-
-  .border {
-    @apply border-border;
-  }
 }

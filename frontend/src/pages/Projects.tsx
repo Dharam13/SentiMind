@@ -4,6 +4,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../contexts/AuthContext";
 import * as collectorApi from "../lib/collectorApi";
 import * as projectApi from "../lib/projectApi";
+import { BarChart3, Rocket, MessageSquare, Sparkles, User, LogOut, Plus } from "lucide-react";
 
 type Project = projectApi.Project;
 
@@ -215,10 +216,11 @@ export function Projects() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+      <div className="absolute inset-0 grid-bg opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/6 via-transparent to-transparent" />
 
       {/* Top bar */}
-      <header className="relative z-30 border-b border-border bg-background/80 backdrop-blur">
+      <header className="relative z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between gap-3 px-6 lg:px-8">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -232,9 +234,9 @@ export function Projects() {
             <button
               type="button"
               onClick={() => setShowNewProject(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition duration-200 hover:scale-105"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-neon hover:shadow-neon-lg transition duration-200 hover:scale-105"
             >
-              <span className="text-base">+</span>
+              <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Project</span>
             </button>
 
@@ -245,7 +247,7 @@ export function Projects() {
                   e.stopPropagation();
                   setShowUserMenu((open) => !open);
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-indigo-600 text-sm font-semibold text-primary-foreground hover:shadow-lg hover:scale-105 transition duration-200"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground hover:shadow-neon hover:scale-105 transition duration-200"
                 aria-expanded={showUserMenu}
                 aria-haspopup="true"
                 title={`${user.firstName} ${user.lastName ?? ""}`}
@@ -254,8 +256,8 @@ export function Projects() {
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card shadow-xl backdrop-blur-sm overflow-hidden">
-                  <div className="border-b border-border bg-gradient-to-r from-primary/10 to-indigo-500/10 px-4 py-3">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-neon-lg overflow-hidden">
+                    <div className="border-b border-border bg-primary/5 px-4 py-3">
                     <div className="text-sm font-semibold text-foreground">
                       {user.firstName} {user.lastName ?? ""}
                     </div>
@@ -272,7 +274,7 @@ export function Projects() {
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground hover:bg-primary/10 transition"
                     >
-                      <span>👤</span>
+                      <User className="h-4 w-4 text-muted-foreground" />
                       <span>Profile Settings</span>
                     </button>
                     <button
@@ -285,7 +287,7 @@ export function Projects() {
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition"
                     >
-                      <span>🚪</span>
+                      <LogOut className="h-4 w-4" />
                       <span>Logout</span>
                     </button>
                   </div>
@@ -305,7 +307,7 @@ export function Projects() {
 
         {/* Stats */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="group rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-5 shadow-sm hover:shadow-md transition duration-300">
+          <div className="stat-card group">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -313,51 +315,51 @@ export function Projects() {
                 </div>
                 <div className="mt-3 text-3xl font-bold text-foreground">{formatNumber(totalProjects)}</div>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition duration-300">
-                📊
+              <div className="h-12 w-12 rounded-xl bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center group-hover:scale-110 group-hover:shadow-neon transition duration-300">
+                <BarChart3 className="h-5 w-5 text-neon-cyan" />
               </div>
             </div>
           </div>
-          <div className="group rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-5 shadow-sm hover:shadow-md transition duration-300">
+          <div className="stat-card group">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Active Projects
                 </div>
-                <div className="mt-3 text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(activeProjects)}</div>
+                <div className="mt-3 text-3xl font-bold text-neon-emerald">{formatNumber(activeProjects)}</div>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition duration-300">
-                🚀
+              <div className="h-12 w-12 rounded-xl bg-neon-emerald/10 border border-neon-emerald/20 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] transition duration-300">
+                <Rocket className="h-5 w-5 text-neon-emerald" />
               </div>
             </div>
           </div>
-          <div className="group rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-5 shadow-sm hover:shadow-md transition duration-300">
+          <div className="stat-card group">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Mentions Collected
                 </div>
-                <div className="mt-3 text-3xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="mt-3 text-3xl font-bold text-neon-violet">
                   {loadingMetrics || (!hasMetrics && projects.length > 0) ? "—" : formatNumber(totalMentions)}
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition duration-300">
-                💬
+              <div className="h-12 w-12 rounded-xl bg-neon-violet/10 border border-neon-violet/20 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition duration-300">
+                <MessageSquare className="h-5 w-5 text-neon-violet" />
               </div>
             </div>
           </div>
-          <div className="group rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-5 shadow-sm hover:shadow-md transition duration-300">
+          <div className="stat-card group">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Analyzed
                 </div>
-                <div className="mt-3 text-3xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="mt-3 text-3xl font-bold text-neon-amber">
                   {loadingMetrics || (!hasMetrics && projects.length > 0) ? "—" : formatNumber(totalAnalyzed)}
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition duration-300">
-                ✨
+              <div className="h-12 w-12 rounded-xl bg-neon-amber/10 border border-neon-amber/20 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition duration-300">
+                <Sparkles className="h-5 w-5 text-neon-amber" />
               </div>
             </div>
           </div>
@@ -394,13 +396,12 @@ export function Projects() {
             Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="relative h-72 rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 p-6 shadow-sm animate-pulse overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent dark:via-white/5 animate-shimmer" />
+                className="relative h-72 rounded-2xl border border-border/60 bg-card/80 backdrop-blur p-6 shadow-sm animate-pulse overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
               </div>
             ))
           ) : filteredProjects.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
+            <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur p-8 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
               No projects found. Create a project to start collecting and analyzing mentions.
             </div>
           ) : (
@@ -411,8 +412,7 @@ export function Projects() {
               return (
                 <div
                   key={project.id}
-                  className="group relative flex flex-col rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 p-6 shadow-sm transition duration-300 hover:shadow-lg hover:-translate-y-1 dark:from-card dark:to-card/60"
-                >
+                  className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/80 backdrop-blur p-6 shadow-sm transition duration-300 hover:shadow-neon hover:-translate-y-1 hover:border-primary/30">
                   {/* Hover gradient background */}
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
                   <div className="relative z-10 flex flex-col h-full">
@@ -441,7 +441,7 @@ export function Projects() {
                     </p>
 
                     {/* Metrics Grid */}
-                    <div className="mt-auto mb-4 grid grid-cols-3 gap-2 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 dark:from-muted/30 dark:to-muted/10 p-3 border border-border/50">
+                    <div className="mt-auto mb-4 grid grid-cols-3 gap-2 rounded-xl bg-muted/20 border border-border/40 p-3">
                       <div className="text-center">
                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mentions</div>
                         <div className="mt-2 text-lg font-bold text-foreground">
@@ -470,7 +470,7 @@ export function Projects() {
                       <button
                         type="button"
                         onClick={() => navigate(`/projects/${project.id}`)}
-                        className="col-span-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground dark:hover:bg-primary font-semibold py-2.5 px-3 text-sm transition duration-200 border border-primary/30 hover:border-primary"
+                        className="col-span-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold py-2.5 px-3 text-sm transition duration-200 border border-primary/30 hover:border-primary hover:shadow-neon"
                       >
                         View Dashboard
                       </button>
@@ -478,7 +478,7 @@ export function Projects() {
                         type="button"
                         disabled={runningProjectId === project.id}
                         onClick={() => void handleRunCollector(project)}
-                        className="rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-2 px-3 text-sm transition duration-200 shadow-sm hover:shadow"
+                        className="rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-2 px-3 text-sm transition duration-200 shadow-neon hover:shadow-neon-lg"
                         title={runningProjectId === project.id ? "Collection in progress..." : "Run data collection"}
                       >
                         {runningProjectId === project.id ? "Running…" : "Run"}
@@ -564,7 +564,7 @@ export function Projects() {
                 <button
                   type="submit"
                   disabled={savingProject}
-                  className="rounded-lg bg-gradient-to-r from-primary to-indigo-600 px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition duration-200 disabled:opacity-50"
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-neon hover:shadow-neon-lg transition duration-200 disabled:opacity-50"
                 >
                   {savingProject ? "Creating…" : "Create Project"}
                 </button>
@@ -576,8 +576,8 @@ export function Projects() {
 
       {/* Profile modal */}
       {showProfile && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-gradient-to-br from-card to-card/80 dark:from-card dark:to-card/60 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl p-6 shadow-neon-lg">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-foreground">Profile Settings</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -633,7 +633,7 @@ export function Projects() {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="rounded-lg bg-gradient-to-r from-primary to-indigo-600 px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition duration-200 disabled:opacity-50"
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-neon hover:shadow-neon-lg transition duration-200 disabled:opacity-50"
                 >
                   {savingProfile ? "Saving…" : "Save Changes"}
                 </button>
