@@ -19,7 +19,7 @@ const env = {
   port: optionalIntEnv("PORT", 8000),
   nodeEnv: optionalEnv("NODE_ENV", "development"),
 
-  authServiceUrl: optionalEnv("AUTH_SERVICE_URL", "http://localhost:8001").replace(/\/$/, ""),
+  authServiceUrl: optionalEnv("AUTH_SERVICE_URL", "http://localhost:8011").replace(/\/$/, ""),
   collectorServiceUrl: optionalEnv("COLLECTOR_SERVICE_URL", "http://localhost:8021").replace(
     /\/$/,
     ""
