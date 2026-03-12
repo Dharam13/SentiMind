@@ -65,6 +65,23 @@ const MentionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       required: true,
     },
+    // Sentiment pipeline: "pending" until Collector sends text to Sentiment Service and gets result
+    sentimentStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed"],
+      default: "pending",
+      index: true,
+    },
+    // Populated after sentiment analysis (when sentimentStatus === "completed")
+    sentiment: {
+      vader_score: { type: Number },
+      distilbert_score: { type: Number },
+      final_score: { type: Number },
+      label: { type: String },
+      confidence: { type: Number },
+      processed_text: { type: String },
+      analyzedAt: { type: Date },
+    },
   },
   {
     timestamps: false,

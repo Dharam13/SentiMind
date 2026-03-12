@@ -1,0 +1,10 @@
+{
+  "name": "sentiment-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hybrid VADER + DistilBERT sentiment analysis",
+  "scripts": {
+    "dev": "python run.py",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8030"
+  }
+}

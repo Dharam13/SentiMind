@@ -1,0 +1,126 @@
+services:
+  # Sentiment Service (Python - FastAPI/Uvicorn)
+  sentiment-service:
+    build:
+      context: ./sentiment-service
+    container_name: sentimind-sentiment
+    ports:
+      - "8030:8030"
+    networks:
+      - sentimind-network
+
+  # Collector Service (Node.js) - uses MongoDB Atlas via MONGODB_URI
+  collector-service:
+    build:
+      context: ./collector-service
+    container_name: sentimind-collector
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=${MONGODB_URI}
+      - SENTIMENT_SERVICE_URL=http://sentiment-service:8030
+      - SENTIMENT_PROCESSOR_ENABLED=${SENTIMENT_PROCESSOR_ENABLED:-true}
+      - TWITTER_API_KEY=${TWITTER_API_KEY:-}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN:-}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET:-}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN:-}
+      - TWITTER_ACCESS_SECRET=${TWITTER_ACCESS_SECRET:-}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT:-SentiMind/1.0}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+      - GNEWS_API_KEY=${GNEWS_API_KEY:-}
+      - NEWSDATA_API_KEY=${NEWSDATA_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GOOGLE_SEARCH_CX=${GOOGLE_SEARCH_CX:-}
+      - TUMBLR_API_KEY=${TUMBLR_API_KEY:-}
+    depends_on:
+      - sentiment-service
+    networks:
+      - sentimind-network
+
+  # Auth Service (Node.js)
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: sentimind-auth
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN}
+      - REFRESH_TOKEN_EXPIRY_DAYS=${REFRESH_TOKEN_EXPIRY_DAYS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sentimind-network
+
+  # PostgreSQL for auth-service
+  postgres:
+    image: postgres:16-alpine
+    container_name: sentimind-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sentimind-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: sentimind-gateway
+    ports:
+      - "3100:3100"
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - COLLECTOR_SERVICE_URL=http://collector-service:3001
+      - SENTIMENT_SERVICE_URL=http://sentiment-service:8030
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost,http://localhost:80}
+    depends_on:
+      - collector-service
+      - auth-service
+      - sentiment-service
+    networks:
+      - sentimind-network
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL:-http://localhost}
+    container_name: sentimind-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - sentimind-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sentimind-network:
+    driver: bridge

@@ -122,6 +122,7 @@ async function collectForPlatform(req, res, next, platform) {
       sourceType: m.sourceType || undefined,
       metadata: m.metadata ?? {},
       rawJson: m.rawJson,
+      sentimentStatus: "pending",
     }));
 
     await Mention.insertMany(docs, { ordered: false });
@@ -186,27 +187,52 @@ async function getProjectSummary(req, res, next) {
       return res.status(400).json({ error: "Query parameter 'projectId' must be a number" });
     }
 
-    const hoursParsed = hoursRaw ? parseInt(String(hoursRaw), 10) : NaN;
+    const hoursStr = hoursRaw != null ? String(hoursRaw).trim().toLowerCase() : "";
+    const allTime = hoursStr === "all" || hoursStr === "total" || hoursStr === "lifetime";
+
+    const hoursParsed = allTime ? NaN : (hoursRaw ? parseInt(String(hoursRaw), 10) : NaN);
     const hoursUsed =
-      Number.isFinite(hoursParsed) && hoursParsed > 0 ? hoursParsed : DEFAULT_SUMMARY_HOURS;
+      allTime ? 0 : (Number.isFinite(hoursParsed) && hoursParsed > 0 ? hoursParsed : DEFAULT_SUMMARY_HOURS);
 
-    const end = new Date();
-    const start = new Date(end.getTime() - hoursUsed * 60 * 60 * 1000);
-
-    const query = {
-      projectId,
-      publishedAt: { $gte: start },
-    };
+    const query = { projectId };
+    if (!allTime) {
+      const end = new Date();
+      const start = new Date(end.getTime() - hoursUsed * 60 * 60 * 1000);
+      query.publishedAt = { $gte: start };
+    }
     if (keyword && typeof keyword === "string") {
       query.keyword = keyword;
     }
 
-    const mentions = await Mention.find(query)
-      .sort({ publishedAt: 1 })
-      .limit(1000)
-      .lean();
+    const [totalMentions, timeSeriesAgg, byPlatformAgg, sentimentAgg] = await Promise.all([
+      Mention.countDocuments(query),
+      Mention.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$publishedAt" },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $project: { _id: 0, date: "$_id", count: 1 } },
+        { $sort: { date: 1 } },
+      ]),
+      Mention.aggregate([
+        { $match: query },
+        { $group: { _id: { $ifNull: ["$platform", "unknown"] }, count: { $sum: 1 } } },
+        { $project: { _id: 0, platform: "$_id", count: 1 } },
+        { $sort: { platform: 1 } },
+      ]),
+      Mention.aggregate([
+        { $match: query },
+        { $group: { _id: { $ifNull: ["$sentimentStatus", "pending"] }, count: { $sum: 1 } } },
+        { $project: { _id: 0, status: "$_id", count: 1 } },
+      ]),
+    ]);
 
-    if (!mentions.length) {
+    if (!totalMentions) {
       return res.status(200).json({
         projectId,
         keyword: keyword ?? null,
@@ -214,40 +240,35 @@ async function getProjectSummary(req, res, next) {
         totalMentions: 0,
         timeSeries: [],
         byPlatform: [],
+        sentimentCounts: { completed: 0, pending: 0, failed: 0 },
         mentions: [],
       });
     }
 
-    const timeSeriesMap = new Map();
-    const platformMap = new Map();
-
-    for (const m of mentions) {
-      const publishedAt = m.publishedAt ? new Date(m.publishedAt) : new Date();
-      const dayKey = publishedAt.toISOString().slice(0, 10);
-
-      const tsBucket = timeSeriesMap.get(dayKey) || { date: dayKey, count: 0 };
-      tsBucket.count += 1;
-      timeSeriesMap.set(dayKey, tsBucket);
-
-      const platformKey = m.platform || "unknown";
-      const platBucket = platformMap.get(platformKey) || { platform: platformKey, count: 0 };
-      platBucket.count += 1;
-      platformMap.set(platformKey, platBucket);
+    const sentimentCounts = { completed: 0, pending: 0, failed: 0 };
+    for (const row of sentimentAgg || []) {
+      const key = String(row.status || "").toLowerCase();
+      if (key === "completed") sentimentCounts.completed = row.count || 0;
+      else if (key === "failed") sentimentCounts.failed = row.count || 0;
+      else sentimentCounts.pending += row.count || 0;
     }
 
-    const timeSeries = Array.from(timeSeriesMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
-    const byPlatform = Array.from(platformMap.values()).sort((a, b) =>
-      a.platform.localeCompare(b.platform)
-    );
+    // Keep a slim list for UI feed/charts; totals come from aggregation above.
+    const mentions = await Mention.find(query)
+      .sort({ publishedAt: -1 })
+      .limit(800)
+      .lean();
 
     const slimMentions = [...mentions]
-      .sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      )
-      .slice(0, 200)
+      .sort((a, b) => {
+        // Prioritize analyzed (completed) first, then pending, then failed
+        const order = { completed: 0, pending: 1, failed: 2 };
+        const aOrder = order[a.sentimentStatus] ?? 1;
+        const bOrder = order[b.sentimentStatus] ?? 1;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      })
+      .slice(0, 500)
       .map((m) => ({
         id: String(m._id),
         projectId: m.projectId,
@@ -260,15 +281,18 @@ async function getProjectSummary(req, res, next) {
         timeWindowUsed: m.timeWindowUsed,
         sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
+        sentimentStatus: m.sentimentStatus,
+        sentiment: m.sentiment,
       }));
 
     return res.status(200).json({
       projectId,
       keyword: keyword ?? null,
       hoursUsed,
-      totalMentions: mentions.length,
-      timeSeries,
-      byPlatform,
+      totalMentions,
+      timeSeries: timeSeriesAgg || [],
+      byPlatform: byPlatformAgg || [],
+      sentimentCounts,
       mentions: slimMentions,
     });
   } catch (err) {
@@ -536,6 +560,7 @@ async function runCollection(req, res, next) {
         sourceType: m.sourceType || undefined,
         metadata: m.metadata ?? {},
         rawJson: m.rawJson,
+        sentimentStatus: "pending",
       }));
 
     const skippedExisting = dedupedMentions.length - docs.length;
@@ -605,6 +630,144 @@ async function runCollection(req, res, next) {
   }
 }
 
+/**
+ * Fetch metrics for multiple projects at once (optimized for dashboard)
+ * This is much more efficient than calling getProjectSummary for each project individually
+ */
+async function getBulkProjectMetrics(req, res, next) {
+  try {
+    const { projectIds: projectIdsRaw, hours: hoursRaw } = req.query;
+
+    if (!projectIdsRaw) {
+      return res.status(400).json({ error: "Query parameter 'projectIds' is required" });
+    }
+
+    // Parse project IDs
+    const projectIds = String(projectIdsRaw)
+      .split(',')
+      .map((id) => {
+        const parsed = parseInt(id.trim(), 10);
+        return Number.isFinite(parsed) ? parsed : null;
+      })
+      .filter((id) => id !== null);
+
+    if (projectIds.length === 0) {
+      return res.status(400).json({ error: "At least one valid project ID is required" });
+    }
+
+    const hoursStr = hoursRaw != null ? String(hoursRaw).trim().toLowerCase() : "";
+    const allTime = hoursStr === "all" || hoursStr === "total" || hoursStr === "lifetime";
+    const hoursParsed = allTime ? NaN : (hoursRaw ? parseInt(String(hoursRaw), 10) : NaN);
+    const hoursUsed = allTime ? 0 : (Number.isFinite(hoursParsed) && hoursParsed > 0 ? hoursParsed : DEFAULT_SUMMARY_HOURS);
+
+    // Build date filter
+    let dateFilter = {};
+    if (!allTime) {
+      const end = new Date();
+      const start = new Date(end.getTime() - hoursUsed * 60 * 60 * 1000);
+      dateFilter = { $gte: start };
+    }
+
+    // Fetch metrics for all projects in one query
+    const metricsData = await Mention.aggregate([
+      {
+        $match: {
+          projectId: { $in: projectIds },
+          ...(Object.keys(dateFilter).length > 0 && { publishedAt: dateFilter }),
+        },
+      },
+      {
+        $group: {
+          _id: "$projectId",
+          totalMentions: { $sum: 1 },
+          completedCount: {
+            $sum: { $cond: [{ $eq: ["$sentimentStatus", "completed"] }, 1, 0] },
+          },
+          pendingCount: {
+            $sum: { $cond: [{ $eq: ["$sentimentStatus", "pending"] }, 1, 0] },
+          },
+          failedCount: {
+            $sum: { $cond: [{ $eq: ["$sentimentStatus", "failed"] }, 1, 0] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          projectId: "$_id",
+          totalMentions: 1,
+          analyzed: "$completedCount",
+          pending: "$pendingCount",
+          failed: "$failedCount",
+        },
+      },
+    ]);
+
+    // Build response map
+    const metricsMap = {};
+    for (const metric of metricsData) {
+      metricsMap[metric.projectId] = {
+        hoursUsed,
+        totalMentions: metric.totalMentions,
+        analyzed: metric.analyzed,
+        pending: metric.pending,
+        failed: metric.failed,
+      };
+    }
+
+    // Return metrics for all requested projects (fill in zeros for projects with no data)
+    const result = {};
+    for (const projectId of projectIds) {
+      result[projectId] = metricsMap[projectId] || {
+        hoursUsed,
+        totalMentions: 0,
+        analyzed: 0,
+        pending: 0,
+        failed: 0,
+      };
+    }
+
+    return res.status(200).json({ metrics: result });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Get top influencers for a project
+ */
+async function getProjectInfluencers(req, res, next) {
+  try {
+    const { projectId: projectIdRaw, hours: hoursRaw, keyword, limit: limitRaw } = req.query;
+
+    if (!projectIdRaw) {
+      return res.status(400).json({ error: "Query parameter 'projectId' is required" });
+    }
+    const projectId = parseInt(String(projectIdRaw), 10);
+    if (!Number.isFinite(projectId)) {
+      return res.status(400).json({ error: "Query parameter 'projectId' must be a number" });
+    }
+
+    const hoursUsed = hoursRaw ? parseInt(String(hoursRaw), 10) : DEFAULT_SUMMARY_HOURS;
+    const limit = limitRaw ? Math.min(parseInt(String(limitRaw), 10) || 50, 500) : 50;
+
+    const { getTopInfluencersCrossPlatform } = require("../services/influencerService");
+
+    const influencers = await getTopInfluencersCrossPlatform(projectId, hoursUsed, keyword, limit);
+
+    res.status(200).json({
+      projectId,
+      keyword: keyword ?? null,
+      hoursUsed,
+      influencers,
+      total: influencers.length,
+    });
+  } catch (err) {
+    console.error("[Collector] Error fetching project influencers:", err);
+    next(err);
+  }
+}
+
 module.exports = {
   collectReddit,
   collectTwitter,
@@ -613,6 +776,8 @@ module.exports = {
   collectLinkedIn,
   collectNews,
   getProjectSummary,
+  getBulkProjectMetrics,
   runCollection,
+  getProjectInfluencers,
 };
 

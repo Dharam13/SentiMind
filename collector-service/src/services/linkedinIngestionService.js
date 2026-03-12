@@ -1,6 +1,6 @@
 const Parser = require("rss-parser");
 const { env } = require("../config/env");
-const { resolveHours } = require("./timeWindow");
+const { resolveHours, getWindowRange } = require("./timeWindow");
 
 const parser = new Parser({
   timeout: 15000,
@@ -31,9 +31,10 @@ async function fetchLinkedInMentions({ keyword, limit = 20, hours }) {
     throw error;
   }
 
+  const { start } = getWindowRange(effectiveHours);
   const items = feed?.items ?? [];
   const mentions = items
-    .slice(0, Math.min(limit, 100))
+    .slice(0, Math.min(limit * 3, 150))
     .map((item) => {
       const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
       const title = item.title || "";
@@ -63,7 +64,9 @@ async function fetchLinkedInMentions({ keyword, limit = 20, hours }) {
           guid: item.guid,
         },
       };
-    });
+    })
+    .filter((m) => m.publishedAt >= start)
+    .slice(0, limit);
 
   return { mentions, hoursUsed: effectiveHours };
 }

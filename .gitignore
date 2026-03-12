@@ -21,6 +21,10 @@ out/
 .env.test.local
 .env.production.local
 
+# Docker
+*.log
+docker-compose.override.yml
+
 # IDE
 .vscode/
 .idea/
