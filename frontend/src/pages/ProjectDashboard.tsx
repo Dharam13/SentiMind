@@ -13,18 +13,23 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { InfluencersView } from "../components/InfluencersView";
+import { SummaryView } from "../components/dashboard/SummaryView";
+import { DeepAnalysisView } from "../components/dashboard/DeepAnalysisView";
+import { SourcesView } from "../components/dashboard/SourcesView";
+import { ComparisonView } from "../components/dashboard/ComparisonView";
+import { ReportsView } from "../components/dashboard/ReportsView";
 import * as projectApi from "../lib/projectApi";
 import * as collectorApi from "../lib/collectorApi";
 import {
   MessageSquare, TrendingUp, Search, Globe, Users, Scale,
   Mail, FileText, BarChart3, Palette, MapPin, Play, Loader2,
-  User, LogOut, Wrench, Rocket
+  User, LogOut, Wrench
 } from "lucide-react";
 
 type Project = projectApi.Project;
 
 type SourceFilter = "all" | "social" | "news" | "blogs";
-type NavItem = "mentions" | "summary" | "analysis" | "sources" | "influencers" | "comparison";
+type NavItem = "mentions" | "summary" | "analysis" | "sources" | "influencers" | "comparison" | "email-reports" | "pdf-report" | "excel-export" | "infographic";
 type GraphTab = "mentions-reach" | "sentiment";
 
 function platformLabel(platform: string) {
@@ -110,27 +115,51 @@ export function ProjectDashboard() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    if (!accessToken || !Number.isFinite(projectId)) return;
+    if (!Number.isFinite(projectId)) {
+      setError("Invalid project id");
+      return;
+    }
+    if (!accessToken) return;
+    let cancelled = false;
     setLoadingProject(true);
     setError(null);
+    setProject(null);
+    setSummary(null);
+    setNav("mentions");
+    setGraphTab("mentions-reach");
     projectApi
       .getProject(accessToken, projectId)
-      .then((res) => setProject(res.project))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load project"))
+      .then((res) => {
+        if (!cancelled) setProject(res.project);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load project");
+      })
       .finally(() => setLoadingProject(false));
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken, projectId]);
 
   useEffect(() => {
     if (!Number.isFinite(projectId)) return;
     if (!project) return;
+    let cancelled = false;
     setLoadingSummary(true);
     setError(null);
     // Fetch overall results for the project (not filtered by keyword)
     collectorApi
       .getProjectSummary({ projectId, hours })
-      .then((res) => setSummary(res))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load summary"))
+      .then((res) => {
+        if (!cancelled) setSummary(res);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load summary");
+      })
       .finally(() => setLoadingSummary(false));
+    return () => {
+      cancelled = true;
+    };
   }, [projectId, project, hours]);
 
   useEffect(() => {
@@ -337,22 +366,22 @@ export function ProjectDashboard() {
             </div>
             <div className="space-y-1.5">
               {([
-                [Mail, "Email Reports"],
-                [FileText, "PDF Report"],
-                [BarChart3, "Excel Export"],
-                [Palette, "Infographic"]
-              ] as Array<[typeof Mail, string]>).map(([Icon, label]) => (
+                ["email-reports", Mail, "Email Reports"],
+                ["pdf-report", FileText, "PDF Report"],
+                ["excel-export", BarChart3, "Excel Export"],
+                ["infographic", Palette, "Infographic"]
+              ] as Array<[NavItem, typeof Mail, string]>).map(([key, Icon, label]) => (
                 <button
-                  key={label}
+                  key={key}
                   type="button"
-                  disabled
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-muted-foreground/60 cursor-not-allowed hover:bg-muted/40 transition duration-200"
+                  onClick={() => setNav(key)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition duration-200 ${nav === key
+                      ? "bg-primary/15 text-primary border border-primary/30 shadow-neon"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="flex-1">{label}</span>
-                  <span className="text-[10px] font-semibold text-neon-amber bg-neon-amber/10 border border-neon-amber/20 rounded px-2 py-0.5">
-                    Coming
-                  </span>
                 </button>
               ))}
             </div>
@@ -804,19 +833,24 @@ export function ProjectDashboard() {
                   </div>
                 )}
 
-                {nav !== "mentions" && nav !== "influencers" && (
-                  <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                      <div className="font-bold text-foreground mb-2 text-lg flex items-center justify-center gap-2"><Rocket className="h-5 w-5 text-primary" /> Coming Soon</div>
-                      <div className="text-sm text-muted-foreground">
-                        {nav === "summary" && "Summary and key insights"}
-                        {nav === "analysis" && "Deep analysis and patterns"}
-                        {nav === "sources" && "Source breakdown and trends"}
-                        {nav === "comparison" && "Competitive comparison"}
-                        <p className="mt-2">will be available soon.</p>
-                      </div>
-                    </div>
-                  </div>
+                {nav === "summary" && (
+                  <SummaryView summary={summary} loading={loadingSummary} keyword={project?.primaryKeyword} />
+                )}
+
+                {nav === "analysis" && (
+                  <DeepAnalysisView summary={summary} loading={loadingSummary} />
+                )}
+
+                {nav === "sources" && (
+                  <SourcesView summary={summary} loading={loadingSummary} />
+                )}
+
+                {nav === "comparison" && (
+                  <ComparisonView summary={summary} loading={loadingSummary} />
+                )}
+
+                {(nav === "email-reports" || nav === "pdf-report" || nav === "excel-export" || nav === "infographic") && (
+                  <ReportsView summary={summary} project={project} loading={loadingSummary} activeReport={nav} />
                 )}
               </section>
 
@@ -872,10 +906,16 @@ export function ProjectDashboard() {
                 </div>
 
                 {nav !== "mentions" && nav !== "influencers" && (
-                  <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6">
-                    <div className="font-bold text-foreground mb-2 flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Coming Soon</div>
-                    <div className="text-sm text-muted-foreground leading-relaxed">
-                      More sections are in development including in-depth analysis, influencer tracking, and competitive insights.
+                  <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl p-6 shadow-neon">
+                    <div className="font-bold text-foreground mb-3 flex items-center gap-2 text-sm">
+                      <Wrench className="h-4 w-4 text-primary" /> Quick Tips
+                    </div>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-2">
+                      {nav === "summary" && <p>The summary shows an overview of your sentiment data with key statistics and top keywords extracted from your mentions.</p>}
+                      {nav === "analysis" && <p>Deep analysis provides sentiment score distributions, platform radar charts, hourly activity patterns, and top author breakdowns.</p>}
+                      {nav === "sources" && <p>Sources shows platform share, mentions by platform, and detailed per-platform breakdowns with latest mentions.</p>}
+                      {nav === "comparison" && <p>Comparison provides stacked bar charts, multi-metric radar, and a detailed table to compare platforms side by side.</p>}
+                      {(nav === "email-reports" || nav === "pdf-report" || nav === "excel-export" || nav === "infographic") && <p>Generate and export your analysis data as PDF, Excel, email reports, or visual infographics.</p>}
                     </div>
                   </div>
                 )}
