@@ -12,7 +12,7 @@ type SentimentFilter = "all" | "positive" | "neutral" | "negative" | "mixed";
 
 interface InfluencersViewProps {
   projectId: number;
-  hours: number;
+  hours: number | "lifetime";
   keyword?: string;
   loadingParent?: boolean;
 }
@@ -94,7 +94,7 @@ export function InfluencersView({
         const response = await collectorApi.getProjectInfluencers({
           projectId,
           keyword,
-          hours,
+          hours: hours === "lifetime" ? undefined : hours,
           limit: 100,
         });
         setInfluencers(response.influencers);

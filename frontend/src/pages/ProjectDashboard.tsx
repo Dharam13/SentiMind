@@ -93,7 +93,7 @@ export function ProjectDashboard() {
   const [nav, setNav] = useState<NavItem>("mentions");
   const [graphTab, setGraphTab] = useState<GraphTab>("mentions-reach");
 
-  const [hours, setHours] = useState<number>(24);
+  const [hours, setHours] = useState<number | "lifetime">(24);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   const [summary, setSummary] = useState<collectorApi.ProjectSummaryResponse | null>(null);
@@ -149,7 +149,7 @@ export function ProjectDashboard() {
     setError(null);
     // Fetch overall results for the project (not filtered by keyword)
     collectorApi
-      .getProjectSummary({ projectId, hours })
+      .getProjectSummary({ projectId, hours: hours === "lifetime" ? "lifetime" : hours })
       .then((res) => {
         if (!cancelled) setSummary(res);
       })
@@ -254,7 +254,7 @@ export function ProjectDashboard() {
         projectId: project.id,
         keyword: project.primaryKeyword,
         limit: 50,
-        hours,
+        hours: hours === "lifetime" ? undefined : hours,
       });
       console.log(`[Dashboard] Collection completed:`, result);
 
@@ -272,7 +272,7 @@ export function ProjectDashboard() {
 
       const res = await collectorApi.getProjectSummary({
         projectId: project.id,
-        hours,
+        hours: hours === "lifetime" ? "lifetime" : hours,
       });
       setSummary(res);
     } catch (err) {
@@ -415,12 +415,16 @@ export function ProjectDashboard() {
               <ThemeToggle />
               <select
                 value={hours}
-                onChange={(e) => setHours(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setHours(val === "lifetime" ? "lifetime" : parseInt(val, 10));
+                }}
                 className="rounded-lg border border-border bg-card/50 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
               >
                 <option value={24}>Last 24 hours</option>
                 <option value={168}>Last 7 days</option>
                 <option value={720}>Last 30 days</option>
+                <option value="lifetime">Lifetime (All Data)</option>
               </select>
               <button
                 type="button"
