@@ -3,6 +3,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const { env } = require("./config/env");
 const { connectMongo } = require("./db/mongo");
+const { logger } = require("./utils/logger");
 const agentRoutes = require("./routes/agentRoutes");
 
 const { runSentimentSignalCheck } = require("./agents/sentimentSignalAgent");
@@ -29,7 +30,7 @@ app.use("/api/agent", agentRoutes);
 
 // Error Handler Middleware
 app.use((err, _req, res, _next) => {
-  console.error("[Agent Service Error]:", err);
+  logger.error("AgentService", `Unhandled request error: ${err.message}`, err);
   res.status(err.status || 500).json({
     error: err.message || "Internal Agent Error",
     code: err.code || "AGENT_SERVICE_ERROR",
@@ -42,14 +43,14 @@ let intervalIds = [];
  * Start the 4 Agent Background Orchestration Loops
  */
 function startAgentWorkers() {
-  console.log("🤖 Starting 4-Agent Autonomous Orchestration Loops...");
+  logger.info("AgentWorker", "Starting background agent orchestration loop");
 
   // Agent 1: Signal & Spike Detector (every 1-5 min)
   const id1 = setInterval(async () => {
     try {
       await runSentimentSignalCheck();
     } catch (e) {
-      console.error("[Worker Agent 1] Error:", e.message);
+      logger.error("AgentWorker:Signal", `Signal check failed: ${e.message}`);
     }
   }, env.signalCheckIntervalMs);
 
@@ -68,7 +69,7 @@ function startAgentWorkers() {
       // 4. Retry Failed Transient Actions Idempotently
       await retryFailedActions();
     } catch (e) {
-      console.error("[Worker Pipeline] Error:", e.message);
+      logger.error("AgentWorker:Pipeline", `Pipeline loop failed: ${e.message}`);
     }
   }, env.agentProcessIntervalMs);
 
@@ -86,19 +87,15 @@ async function start() {
     startAgentWorkers();
 
     const server = app.listen(env.port, () => {
-      console.log("\n" + "=".repeat(60));
-      console.log("🚀 SentiMind Agent Service (4-Agent Orchestrator) Started");
-      console.log("=".repeat(60));
-      console.log(`   Port: ${env.port}`);
-      console.log(`   Health: http://localhost:${env.port}/health`);
-      console.log(`   Catalog: http://localhost:${env.port}/api/agent/catalog`);
-      console.log(`   Overview: http://localhost:${env.port}/api/agent/overview`);
-      console.log("=".repeat(60) + "\n");
+      logger.info("AgentService", `Service running on port ${env.port}`, {
+        healthUrl: `http://localhost:${env.port}/health`,
+        overviewUrl: `http://localhost:${env.port}/api/agent/overview`,
+      });
     });
 
     return server;
   } catch (error) {
-    console.error("❌ Failed to start Agent Service:", error.message);
+    logger.error("AgentService", `Failed to start service: ${error.message}`);
     process.exit(1);
   }
 }

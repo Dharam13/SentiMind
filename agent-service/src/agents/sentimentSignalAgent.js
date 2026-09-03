@@ -1,5 +1,6 @@
 const { Mention } = require("../models/Mention");
 const { Signal } = require("../models/Signal");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
 
 /**
@@ -128,12 +129,17 @@ async function runSentimentSignalCheck(targetProjectId) {
             status: "detected",
           });
 
-          console.log(`🚨 [Agent 1: Signal Agent] Discovered ${detectedSpikeType} for Project ${pid}: ${title}`);
+          logger.info("Agent:Signal", `Discovered ${detectedSpikeType} for Project ${pid}: ${title}`, {
+            projectId: pid,
+            type: detectedSpikeType,
+            severity,
+            deviationFactor,
+          });
           signalsGenerated.push(signal);
         }
       }
     } catch (err) {
-      console.error(`[Agent 1 Error] Project ${pid}:`, err.message);
+      logger.error("Agent:Signal", `Error checking sentiment signals for Project ${pid}`, err);
     }
   }
 

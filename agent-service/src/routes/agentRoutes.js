@@ -10,6 +10,7 @@ const { processPendingSignals } = require("../agents/intentRootCauseAgent");
 const { processAnalyzedRootCauses } = require("../agents/campaignOrchestratorAgent");
 const { executeApprovedCampaigns } = require("../agents/policyPaymentAgent");
 const { computeCampaignMeasurement } = require("../services/measurementService");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
 
 const router = Router();
@@ -189,19 +190,23 @@ router.post("/test-spike", async (req, res, next) => {
     const projectId = req.body.projectId ? parseInt(String(req.body.projectId), 10) : 1;
     const spikeType = req.body.spikeType || "negative_spike"; // or "positive_spike"
 
-    console.log(`🎬 [Demo Pipeline Triggered] Simulating ${spikeType} for Project ${projectId}...`);
+    // Derive real brand keyword for this project
+    const sample = await Mention.findOne({ projectId }).select({ keyword: 1 }).lean();
+    const keyword = req.body.keyword || sample?.keyword || (projectId === 10 ? "Amul" : "Brand");
 
-    // 1. Create simulated spike mentions
+    logger.info("AgentRoute", `Simulating ${spikeType} for ${keyword} (Project ${projectId})`, { projectId, keyword });
+
+    // 1. Create simulated spike mentions tailored to the brand
     const testMentions = [
       {
         projectId,
-        keyword: "SentiPulse",
+        keyword,
         platform: "twitter",
-        author: "alex_tech99",
+        author: "alex_reviewer",
         content:
           spikeType === "negative_spike"
-            ? "Really disappointed with @SentiPulse headphones. The battery dies after only 90 minutes. Anyone else having battery drain issues?"
-            : "Holy cow @SentiPulse headphones sound incredible! Studio quality ANC under ₹3k. Where can my friends buy this?",
+            ? `Really frustrated with @${keyword}. Order experience fell short of expectations and customer support is delayed.`
+            : `Holy cow @${keyword} quality is incredible! Exceeded all expectations. Where can my friends order this?`,
         publishedAt: new Date(),
         collectedAt: new Date(),
         timeWindowUsed: 6,
@@ -215,13 +220,13 @@ router.post("/test-spike", async (req, res, next) => {
       },
       {
         projectId,
-        keyword: "SentiPulse",
+        keyword,
         platform: "reddit",
         author: "gadget_guy_delhi",
         content:
           spikeType === "negative_spike"
-            ? "Avoid SentiPulse batch #4. Battery drain issue is real. Support hasn't replied for 2 days."
-            : "Best ₹3000 wireless headphone in India hands down. ANC blocks metro noise completely!",
+            ? `Avoid recent ${keyword} batch if you need reliable delivery. Had serious issues with service response.`
+            : `Best experience with ${keyword} hands down. High quality and super reliable. Highly recommend!`,
         publishedAt: new Date(),
         collectedAt: new Date(),
         timeWindowUsed: 6,
@@ -235,13 +240,13 @@ router.post("/test-spike", async (req, res, next) => {
       },
       {
         projectId,
-        keyword: "SentiPulse",
+        keyword,
         platform: "twitter",
         author: "shreya_reviews",
         content:
           spikeType === "negative_spike"
-            ? "@SentiPulse your headphones battery won't hold charge. Switching to competitor if not fixed."
-            : "Thinking of buying 2 more SentiPulse units for gifting. Any bundle links available?",
+            ? `@${keyword} please fix your customer support turnaround. Waited 2 days with no update.`
+            : `Planning to order more from @${keyword} this weekend. Any bundle or checkout links available?`,
         publishedAt: new Date(),
         collectedAt: new Date(),
         timeWindowUsed: 6,

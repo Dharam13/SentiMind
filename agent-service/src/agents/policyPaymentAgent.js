@@ -5,7 +5,10 @@ const { AgentAction } = require("../models/AgentAction");
 const { assessMentionCredibility } = require("../services/credibilityService");
 const { createPaymentLink } = require("../services/razorpayService");
 const { computeCampaignMeasurement } = require("../services/measurementService");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+
+const MODULE_NAME = "Agent:Payment";
 
 /**
  * Agent 4: Policy & Payment Agent
@@ -25,7 +28,10 @@ async function executeApprovedCampaigns() {
       if (!campaign.executedAt) campaign.executedAt = new Date();
       await campaign.save();
 
-      console.log(`💳 [Agent 4: Policy & Payment Agent] Executing Campaign: "${campaign.campaignName}"`);
+      logger.info(MODULE_NAME, `Executing campaign: "${campaign.campaignName}"`, {
+        campaignId: campaign._id,
+        projectId: campaign.projectId,
+      });
 
       // Retrieve triggering mentions for this campaign
       let mentions = [];
@@ -56,7 +62,7 @@ async function executeApprovedCampaigns() {
       });
 
       if (todayActionsCount >= env.maxActionsPerDay) {
-        console.warn(`[Agent 4] Daily action limit reached (${todayActionsCount}/${env.maxActionsPerDay}). Gating execution.`);
+        logger.warn(MODULE_NAME, `Daily action limit reached (${todayActionsCount}/${env.maxActionsPerDay}). Gating execution.`);
         continue;
       }
 
@@ -127,7 +133,10 @@ async function executeApprovedCampaigns() {
         if (!isSafeToExecute) {
           await actionRecord.save();
           campaign.actionsBlockedBySafety += 1;
-          console.log(`🛡️ [Agent 4] Blocked action for @${mention.author} (Credibility: ${credibility.score})`);
+          logger.info(MODULE_NAME, `Action blocked by safety gate for @${mention.author}`, {
+            credibilityScore: credibility.score,
+            reasons: credibility.reasons,
+          });
           continue;
         }
 
@@ -156,13 +165,15 @@ async function executeApprovedCampaigns() {
           campaign.actionsSucceeded += 1;
           actionsExecuted.push(actionRecord);
 
-          console.log(`✅ [Agent 4] Created Razorpay Link: ${rzpResponse.paymentLinkUrl} (₹${rzpResponse.amountINR})`);
+          logger.info(MODULE_NAME, `Created payment link: ${rzpResponse.paymentLinkUrl}`, {
+            amountINR: rzpResponse.amountINR,
+            author: mention.author,
+          });
 
           // Mark mention processed
           await Mention.updateOne({ _id: mention._id }, { $set: { agentStatus: "processed" } });
         } catch (rzpError) {
-          // Graceful Failure Handling (Track requirement)
-          console.error(`⚠️ [Agent 4 Failure Handled Gracefully] ${rzpError.message}`);
+          logger.warn(MODULE_NAME, `Payment link creation failed gracefully: ${rzpError.message}`);
 
           actionRecord.status = "failed";
           actionRecord.error = {
@@ -185,10 +196,10 @@ async function executeApprovedCampaigns() {
 
       // Trigger Measurement Loop closure
       await computeCampaignMeasurement(campaign._id).catch((err) => {
-        console.warn("[Agent 4] Measurement computation notice:", err.message);
+        logger.warn(MODULE_NAME, `Measurement computation note: ${err.message}`);
       });
     } catch (err) {
-      console.error(`[Agent 4 Error] Campaign ${campaign._id}:`, err.message);
+      logger.error(MODULE_NAME, `Error executing campaign ${campaign._id}`, err);
     }
   }
 
@@ -208,7 +219,7 @@ async function retryFailedActions() {
 
   for (const action of retryableActions) {
     try {
-      console.log(`🔄 [Agent 4 Retry Worker] Retrying failed action ${action.idempotencyKey}...`);
+      logger.info("Agent:PaymentRetry", `Retrying failed action: ${action.idempotencyKey}`);
 
       const rzpResponse = await createPaymentLink({
         amountPaise: 299900,
@@ -223,7 +234,7 @@ async function retryFailedActions() {
       action.error.willRetry = false;
       await action.save();
 
-      console.log(`🎉 [Agent 4 Retry Succeeded] Action ${action.idempotencyKey} recovered without duplicate transaction!`);
+      logger.info("Agent:PaymentRetry", `Action recovered successfully: ${action.idempotencyKey}`);
     } catch (retryErr) {
       action.error.retryCount += 1;
       action.error.lastRetryAt = new Date();
@@ -232,6 +243,7 @@ async function retryFailedActions() {
         action.status = "permanently_failed";
       }
       await action.save();
+      logger.warn("Agent:PaymentRetry", `Retry attempt ${action.error.retryCount} failed for ${action.idempotencyKey}`);
     }
   }
 }

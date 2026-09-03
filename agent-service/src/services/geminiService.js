@@ -1,12 +1,16 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+
+const MODULE_NAME = "GeminiService";
 
 let genAI = null;
 if (env.geminiApiKey) {
   try {
     genAI = new GoogleGenerativeAI(env.geminiApiKey);
+    logger.info(MODULE_NAME, "GoogleGenerativeAI initialized successfully");
   } catch (err) {
-    console.warn("[GeminiService] Failed to initialize GoogleGenerativeAI:", err.message);
+    logger.warn(MODULE_NAME, "Failed to initialize GoogleGenerativeAI", err);
   }
 }
 
@@ -28,7 +32,7 @@ function extractJsonFromText(rawText) {
     }
     return JSON.parse(cleaned);
   } catch (err) {
-    console.warn("[GeminiService] JSON parse failed:", err.message);
+    logger.warn(MODULE_NAME, `JSON parse failed: ${err.message}`);
     return null;
   }
 }
@@ -47,7 +51,7 @@ async function generateJsonAnalysis(prompt, fallbackGenerator) {
         return parsed;
       }
     } catch (err) {
-      console.warn(`[GeminiService] Gemini API call error: ${err.message}. Using intelligent fallback.`);
+      logger.warn(MODULE_NAME, `Gemini API call failed: ${err.message}. Using intelligent fallback.`);
     }
   }
 

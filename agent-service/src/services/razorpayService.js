@@ -1,6 +1,9 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+
+const MODULE_NAME = "Razorpay";
 
 let razorpayClient = null;
 
@@ -17,49 +20,123 @@ if (isRealTestKey) {
       key_id: env.razorpayKeyId,
       key_secret: env.razorpayKeySecret,
     });
-    console.log("💳 Razorpay Node.js SDK initialized with Test Mode Key:", env.razorpayKeyId);
+    logger.info(MODULE_NAME, `SDK initialized with Test Key: ${env.razorpayKeyId}`);
   } catch (err) {
-    console.warn("⚠️ Razorpay SDK initialization error:", err.message);
+    logger.warn(MODULE_NAME, `SDK initialization failed`, err);
   }
 } else {
-  console.log("ℹ️ Razorpay running in simulated test mode (set real RAZORPAY_KEY_ID in .env anytime)");
+  logger.info(MODULE_NAME, "Running in simulated test mode (set real RAZORPAY_KEY_ID in .env anytime)");
 }
 
-// Merchant Product Catalog (Agent-Readable)
-const MERCHANT_CATALOG = [
-  {
-    id: "prod_headphones_pro",
-    name: "SentiPulse Wireless Headphones Pro",
-    category: "audio",
-    amountPaise: 299900, // ₹2,999.00
-    description: "Active noise cancelling, 30h ultra-battery life, studio grade acoustic driver",
-    inStock: true,
-  },
-  {
-    id: "prod_anc_earbuds",
-    name: "SentiPulse True Wireless ANC Earbuds",
-    category: "audio",
-    amountPaise: 149900, // ₹1,499.00
-    description: "IPX5 waterproof, touch gesture control, low-latency gaming mode",
-    inStock: true,
-  },
-  {
-    id: "prod_bundle_ultimate",
-    name: "Ultimate Audiophile Recovery Bundle (Headphones + Case + Care)",
-    category: "bundle",
-    amountPaise: 379900, // ₹3,799.00 (discounted from ₹4,499)
-    description: "Headphones Pro + Fast charging protective case + 1-Year replacement warranty",
-    inStock: true,
-  },
-  {
-    id: "prod_loyalty_pass",
-    name: "VIP Brand Loyalty Pass & Extended Care",
-    category: "services",
-    amountPaise: 49900, // ₹499.00
-    description: "Priority customer support, free accessory replacements, exclusive merchandise",
-    inStock: true,
-  },
-];
+// Dynamic Merchant Product Catalog by Brand
+function getBrandCatalog(brandKeyword = "") {
+  const brand = (brandKeyword || "").trim().toLowerCase();
+
+  if (brand.includes("amul")) {
+    return [
+      {
+        id: "prod_amul_protein_pack",
+        name: "Amul High-Protein Lassi & Buttermilk Fitness Pack",
+        category: "dairy",
+        amountPaise: 49900, // ₹499.00
+        description: "Fresh high-protein beverages bundle (15g protein per pack)",
+        inStock: true,
+      },
+      {
+        id: "prod_amul_gourmet_cheese",
+        name: "Amul Gourmet Artisan Cheese & Butter Gift Hamper",
+        category: "dairy",
+        amountPaise: 89900, // ₹899.00
+        description: "Classic salted butter, gouda, diced mozzarella and garlic spread",
+        inStock: true,
+      },
+      {
+        id: "prod_amul_icecream_tub",
+        name: "Amul Real Ice Cream & Kulfi Celebration Tub",
+        category: "desserts",
+        amountPaise: 65000, // ₹650.00
+        description: "100% real milk ice cream party pack with royal dry fruits",
+        inStock: true,
+      },
+      {
+        id: "prod_amul_care_voucher",
+        name: "Amul Customer Quality Care & Loyalty Voucher",
+        category: "services",
+        amountPaise: 29900, // ₹299.00
+        description: "Priority resolution voucher redeemable on official Amul stores",
+        inStock: true,
+      },
+    ];
+  }
+
+  if (brand.includes("tesla")) {
+    return [
+      {
+        id: "prod_tesla_test_drive",
+        name: "Tesla Model 3 / Model Y Priority Test Drive Reservation",
+        category: "automotive",
+        amountPaise: 250000, // ₹2,500.00
+        description: "VIP scheduled test drive experience with product specialist",
+        inStock: true,
+      },
+      {
+        id: "prod_tesla_fsd_pass",
+        name: "Tesla Full Self-Driving (FSD) Supervised 1-Month Pass",
+        category: "software",
+        amountPaise: 799900, // ₹7,999.00
+        description: "Navigate on Autopilot, Auto Lane Change, Autopark & Smart Summon",
+        inStock: true,
+      },
+      {
+        id: "prod_tesla_supercharger",
+        name: "Tesla Supercharging Network Credits (500 kWh)",
+        category: "charging",
+        amountPaise: 199900, // ₹1,999.00
+        description: "High-speed Supercharging access across all highway stations",
+        inStock: true,
+      },
+      {
+        id: "prod_tesla_service_credit",
+        name: "Tesla Mobile Service & Customer Resolution Voucher",
+        category: "services",
+        amountPaise: 499900, // ₹4,999.00
+        description: "Mobile service booking priority and customer satisfaction credit",
+        inStock: true,
+      },
+    ];
+  }
+
+  // Dynamic products for any other brand (e.g. Nike, Apple, Zomato, etc.)
+  const capBrand = brandKeyword ? (brandKeyword.charAt(0).toUpperCase() + brandKeyword.slice(1)) : "Brand";
+  return [
+    {
+      id: `prod_${brand.replace(/\s+/g, "_") || "item"}_flagship`,
+      name: `${capBrand} Premium Product & Experience Package`,
+      category: "flagship",
+      amountPaise: 249900, // ₹2,499.00
+      description: `Official certified ${capBrand} offering with standard manufacturer warranty`,
+      inStock: true,
+    },
+    {
+      id: `prod_${brand.replace(/\s+/g, "_") || "item"}_voucher`,
+      name: `${capBrand} Customer Retention & Care Resolution Voucher`,
+      category: "services",
+      amountPaise: 49900, // ₹499.00
+      description: `Priority loyalty resolution coupon valid on your next ${capBrand} order`,
+      inStock: true,
+    },
+    {
+      id: `prod_${brand.replace(/\s+/g, "_") || "item"}_vip_pass`,
+      name: `${capBrand} VIP Annual Pass & Priority Benefits`,
+      category: "membership",
+      amountPaise: 129900, // ₹1,299.00
+      description: `Fast-track customer support, exclusive release drops, and free delivery`,
+      inStock: true,
+    },
+  ];
+}
+
+const MERCHANT_CATALOG = getBrandCatalog("generic");
 
 /**
  * Create a Razorpay Payment Link
@@ -162,6 +239,7 @@ function verifyWebhookSignature(rawBody, signature, secret) {
 
 module.exports = {
   MERCHANT_CATALOG,
+  getBrandCatalog,
   createPaymentLink,
   verifyWebhookSignature,
   isRealTestKey,

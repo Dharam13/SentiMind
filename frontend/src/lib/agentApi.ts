@@ -249,10 +249,14 @@ export async function rejectCampaign(campaignId: string, reason?: string): Promi
   });
 }
 
-export async function triggerTestSpike(projectId: number, spikeType: "negative_spike" | "positive_spike"): Promise<any> {
+export async function triggerTestSpike(
+  projectId: number,
+  spikeType: "negative_spike" | "positive_spike",
+  keyword?: string
+): Promise<any> {
   return request(`/api/agent/test-spike`, {
     method: "POST",
-    body: JSON.stringify({ projectId, spikeType }),
+    body: JSON.stringify({ projectId, spikeType, keyword }),
   });
 }
 

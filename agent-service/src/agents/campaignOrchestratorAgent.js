@@ -1,9 +1,14 @@
 const { RootCause } = require("../models/RootCause");
 const { Signal } = require("../models/Signal");
 const { Campaign } = require("../models/Campaign");
-const { MERCHANT_CATALOG } = require("../services/razorpayService");
+const { Mention } = require("../models/Mention");
+const { getBrandCatalog } = require("../services/razorpayService");
 const { generateJsonAnalysis } = require("../services/geminiService");
+const { buildCampaignPrompt } = require("../constants/prompts");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+
+const MODULE_NAME = "Agent:Campaign";
 
 /**
  * Agent 3: Campaign Orchestrator Agent
@@ -18,58 +23,24 @@ async function processAnalyzedRootCauses() {
     try {
       const signal = await Signal.findById(rc.signalId);
 
-      console.log(`🎯 [Agent 3: Campaign Orchestrator] Planning campaign for Root Cause: "${rc.rootCause}"`);
+      // Determine real brand keyword for this project
+      const sampleMention = await Mention.findOne({ projectId: rc.projectId }).select({ keyword: 1 }).lean();
+      const brandKeyword = sampleMention?.keyword || (rc.projectId === 10 ? "Amul" : "Brand");
+      const brandCatalog = getBrandCatalog(brandKeyword);
+
+      logger.info(MODULE_NAME, `Planning campaign for ${brandKeyword} - root cause: "${rc.rootCause}"`, {
+        rootCauseId: rc._id,
+        brand: brandKeyword,
+        category: rc.category,
+        urgency: rc.urgency,
+      });
 
       const isRecovery = signal?.type === "negative_spike" || rc.category === "product_quality";
 
-      const prompt = `You are the Lead Campaign Orchestrator for an autonomous merchant growth and retention agent.
-A root-cause analysis has diagnosed the following situation:
-
-Root Cause: "${rc.rootCause}"
-Category: ${rc.category}
-Urgency: ${rc.urgency}
-Customer Intent Breakdown:
-- Purchase Intent: ${rc.intentBreakdown.purchase_intent}
-- Complaints: ${rc.intentBreakdown.complaint}
-- Churn Risk: ${rc.intentBreakdown.churn_risk}
-- Comparisons: ${rc.intentBreakdown.comparison}
-
-Merchant Catalog:
-${MERCHANT_CATALOG.map((p) => `- ${p.name} (ID: ${p.id}, Price: ₹${p.amountPaise / 100})`).join("\n")}
-
-Policy Bounds:
-- Max discount allowed: ${env.maxDiscountPercent}%
-- Max campaign budget: ₹${env.maxCampaignBudget / 100}
-- Actions above ₹${env.requireApprovalAboveAmount / 100} require human approval.
-
-Design a targeted campaign to recover churn-risk customers and convert active purchase intent.
-Respond ONLY in JSON format:
-{
-  "campaign_name": "Catchy name for this campaign",
-  "campaign_type": "recovery|growth|retention|celebration|direct_checkout",
-  "description": "2-sentence strategic rationale",
-  "target_audience_description": "Who will be reached and why",
-  "planned_actions": [
-    {
-      "target_segment": "complaint|churn_risk|purchase_intent|comparison|advocacy",
-      "action_type": "discount_offer|payment_link|bundle_offer|support_route",
-      "product": "Product name from catalog",
-      "original_amount": 299900,
-      "discount_percent": 15,
-      "final_amount": 254915,
-      "estimated_count": 3,
-      "reasoning": "Why this specific commercial action was chosen"
-    }
-  ],
-  "total_budget_estimate": 1000000,
-  "expected_revenue": 1500000,
-  "expected_conversion_rate": 0.18,
-  "requires_approval": true,
-  "approval_reason": "High-value commercial action requiring policy review"
-}`;
+      const prompt = buildCampaignPrompt({ rc, catalog: brandCatalog, policy: env });
 
       const fallbackGenerator = () => {
-        const defaultProduct = MERCHANT_CATALOG[0];
+        const defaultProduct = brandCatalog[0];
         const discount = isRecovery ? 15 : 0;
         const finalPrice = Math.round(defaultProduct.amountPaise * (1 - discount / 100));
 
@@ -83,21 +54,22 @@ Respond ONLY in JSON format:
             originalAmount: defaultProduct.amountPaise,
             discountPercent: 15,
             finalAmount: finalPrice,
-            estimatedCount: Math.max(1, rc.intentBreakdown.complaint || 2),
-            reasoning: "Offer 15% loyalty coupon link to turn friction into retention",
+            estimatedCount: Math.max(1, rc.intentBreakdown?.complaint || 2),
+            reasoning: `Offer 15% loyalty resolution voucher to resolve ${brandKeyword} customer friction and prevent churn`,
           });
         }
 
-        if (rc.intentBreakdown.purchase_intent > 0 || !isRecovery) {
+        if ((rc.intentBreakdown?.purchase_intent || 0) > 0 || !isRecovery) {
+          const growthProduct = brandCatalog[1] || defaultProduct;
           plannedActions.push({
             targetSegment: "purchase_intent",
             actionType: "payment_link",
-            product: defaultProduct.name,
-            originalAmount: defaultProduct.amountPaise,
+            product: growthProduct.name,
+            originalAmount: growthProduct.amountPaise,
             discountPercent: 0,
-            finalAmount: defaultProduct.amountPaise,
-            estimatedCount: Math.max(1, rc.intentBreakdown.purchase_intent || 1),
-            reasoning: "Instant Razorpay 1-click checkout payment link for hot buyer leads",
+            finalAmount: growthProduct.amountPaise,
+            estimatedCount: Math.max(1, rc.intentBreakdown?.purchase_intent || 1),
+            reasoning: `Instant 1-click Razorpay checkout link for hot ${brandKeyword} buyer leads`,
           });
         }
 
@@ -105,18 +77,18 @@ Respond ONLY in JSON format:
 
         return {
           campaign_name: isRecovery
-            ? `Rapid Brand Recovery & Retention Initiative`
-            : `Viral Growth & Conversational Checkout Campaign`,
+            ? `${brandKeyword} Customer Care & Quality Recovery`
+            : `${brandKeyword} Viral Growth & Conversational Checkout`,
           campaign_type: isRecovery ? "recovery" : "growth",
           description: isRecovery
-            ? `Autonomous remediation offering bounded 15% recovery payment links to verified customers affected by "${rc.specificIssue}".`
-            : `Capitalize on positive brand advocacy by issuing frictionless Razorpay payment links.`,
-          target_audience_description: `Targeting verified social authors expressing ${isRecovery ? "service friction or churn signals" : "direct purchase intent"}.`,
+            ? `Automated outreach providing resolution vouchers to vocal users discussing ${brandKeyword} to restore satisfaction.`
+            : `Capitalize on positive organic brand sentiment by offering immediate 1-click checkout links for ${brandKeyword}.`,
+          target_audience_description: `Targeting verified social authors discussing ${brandKeyword} with high engagement`,
           planned_actions: plannedActions,
           total_budget_estimate: totalEst,
-          expected_revenue: Math.round(totalEst * 0.8),
-          expected_conversion_rate: 0.22,
-          requires_approval: totalEst >= env.requireApprovalAboveAmount || isRecovery,
+          expected_revenue: Math.round(totalEst * 1.5),
+          expected_conversion_rate: isRecovery ? 0.22 : 0.12,
+          requires_approval: isRecovery,
           approval_reason: isRecovery
             ? "Discounted recovery payouts require merchant authorization"
             : "Direct merchant campaign activation",
@@ -129,19 +101,19 @@ Respond ONLY in JSON format:
         projectId: rc.projectId,
         signalId: rc.signalId,
         rootCauseId: rc._id,
-        campaignName: plan.campaign_name || "Autonomous Merchant Campaign",
+        campaignName: plan.campaign_name || (isRecovery ? `${brandKeyword} Customer Care Recovery` : `${brandKeyword} Viral Growth Surge`),
         campaignType: plan.campaign_type || (isRecovery ? "recovery" : "growth"),
-        description: plan.description || "Orchestrated by SentiMind Agent 3",
-        targetAudienceDescription: plan.target_audience_description || "Social media brand mentions",
+        description: plan.description || `Orchestrated response for ${brandKeyword}`,
+        targetAudienceDescription: plan.target_audience_description || `Verified ${brandKeyword} social authors`,
         plannedActions: (plan.planned_actions || []).map((a) => ({
           targetSegment: a.target_segment || "complaint",
           actionType: a.action_type || "payment_link",
-          product: a.product || MERCHANT_CATALOG[0].name,
-          originalAmount: a.original_amount || MERCHANT_CATALOG[0].amountPaise,
+          product: a.product || brandCatalog[0].name,
+          originalAmount: a.original_amount || brandCatalog[0].amountPaise,
           discountPercent: Math.min(env.maxDiscountPercent, a.discount_percent || 0),
-          finalAmount: a.final_amount || MERCHANT_CATALOG[0].amountPaise,
+          finalAmount: a.final_amount || brandCatalog[0].amountPaise,
           estimatedCount: a.estimated_count || 1,
-          reasoning: a.reasoning || "Agentic commercial trigger",
+          reasoning: a.reasoning || `Agentic commercial trigger for ${brandKeyword}`,
         })),
         totalBudgetEstimate: plan.total_budget_estimate || 500000,
         expectedRevenue: plan.expected_revenue || 800000,
@@ -160,10 +132,14 @@ Respond ONLY in JSON format:
         await signal.save();
       }
 
-      console.log(`🚀 [Agent 3] Campaign Created: "${campaign.campaignName}" (Status: ${campaign.status})`);
+      logger.info(MODULE_NAME, `Campaign created: "${campaign.campaignName}"`, {
+        campaignId: campaign._id,
+        status: campaign.status,
+        actionsCount: campaign.plannedActions?.length || 0,
+      });
       campaignsCreated.push(campaign);
     } catch (err) {
-      console.error(`[Agent 3 Error] RootCause ${rc._id}:`, err.message);
+      logger.error(MODULE_NAME, `Failed to plan campaign for root cause ${rc._id}`, err);
     }
   }
 

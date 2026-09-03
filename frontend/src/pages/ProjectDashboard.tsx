@@ -357,33 +357,12 @@ export function ProjectDashboard() {
           </div>
 
           <nav className="flex-1 px-3 py-6 text-sm overflow-y-auto">
-            <div className="px-3 text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center justify-between">
-              <span>Agentic Commerce</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-bold">Track 01</span>
-            </div>
-            <div className="space-y-1.5 mb-6">
-              <button
-                type="button"
-                onClick={() => setNav("agent")}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition duration-200 ${
-                  nav === "agent"
-                    ? "bg-gradient-to-r from-indigo-600/30 to-violet-600/20 text-indigo-300 border border-indigo-500/40 shadow-lg shadow-indigo-500/20"
-                    : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-                }`}
-              >
-                <Bot className={`h-4 w-4 ${nav === "agent" ? "text-indigo-400 animate-pulse" : "text-slate-400"}`} />
-                <span className="flex-1">Agent Orchestrator</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                  Active
-                </span>
-              </button>
-            </div>
-
             <div className="px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
               Analysis
             </div>
             <div className="space-y-1.5">
               {([
+                  ["agent", "Bot", "AI Agents"],
                   ["mentions", "MessageSquare", "Mentions"],
                   ["summary", "TrendingUp", "Summary"],
                   ["analysis", "Search", "Deep Analysis"],
@@ -392,7 +371,7 @@ export function ProjectDashboard() {
                   ["comparison", "Scale", "Comparison"],
                 ] as Array<[NavItem, string, string]>
               ).map(([key, iconName, label]) => {
-                const icons: Record<string, typeof MessageSquare> = { MessageSquare, TrendingUp, Search, Globe, Users, Scale };
+                const icons: Record<string, typeof MessageSquare> = { MessageSquare, TrendingUp, Search, Globe, Users, Scale, Bot };
                 const Icon = icons[iconName] ?? MessageSquare;
                 return (
                 <button
@@ -877,7 +856,7 @@ export function ProjectDashboard() {
                 )}
 
                 {nav === "agent" && (
-                  <AgentOrchestratorView projectId={projectId} />
+                  <AgentOrchestratorView projectId={projectId} keyword={project?.primaryKeyword} />
                 )}
 
                 {nav === "influencers" && (

@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
+const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+
+const MODULE_NAME = "Database";
 
 async function connectMongo() {
   if (mongoose.connection.readyState === 1) {
@@ -20,21 +23,20 @@ async function connectMongo() {
   };
 
   try {
-    console.log("🔄 Connecting Agent Service to MongoDB...");
+    logger.info(MODULE_NAME, "Connecting to MongoDB...");
     await mongoose.connect(env.mongoUri, options);
-    console.log("✅ Agent Service connected to MongoDB successfully");
-    console.log(`   Database: ${mongoose.connection.db.databaseName}`);
+    logger.info(MODULE_NAME, `Connected to MongoDB successfully (db: ${mongoose.connection.db.databaseName})`);
   } catch (error) {
-    console.error("❌ Agent Service MongoDB connection failed:", error.message);
+    logger.error(MODULE_NAME, `MongoDB connection failed: ${error.message}`, error);
     throw error;
   }
 
   mongoose.connection.on("error", (err) => {
-    console.error("[Agent DB] MongoDB connection error:", err.message);
+    logger.error(MODULE_NAME, `MongoDB connection error: ${err.message}`, err);
   });
 
   mongoose.connection.on("disconnected", () => {
-    console.warn("[Agent DB] MongoDB disconnected");
+    logger.warn(MODULE_NAME, "MongoDB disconnected");
   });
 
   process.on("SIGINT", async () => {
