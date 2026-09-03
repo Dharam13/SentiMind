@@ -54,6 +54,7 @@ async function processPendingBatch() {
     $or: [
       { sentimentStatus: "pending" },
       { sentimentStatus: { $exists: false } },
+      { sentimentStatus: "failed" },
     ],
   })
     .limit(limit)
@@ -106,6 +107,7 @@ async function processPendingBatch() {
       );
       processed++;
     } catch (err) {
+      const isBadRequest = err?.response?.status === 400;
       const msg =
         err?.message ||
         err?.code ||
@@ -113,12 +115,34 @@ async function processPendingBatch() {
           ? err.response.data.detail
           : err?.response?.data) ||
         String(err);
-      console.warn(`[SentimentProcessor] Failed to analyze mention ${doc._id}: ${msg}`);
-      await Mention.updateOne(
-        { _id: doc._id },
-        { $set: { sentimentStatus: "failed" } }
-      ).catch(() => {});
-      failed++;
+
+      if (isBadRequest) {
+        console.log(`[SentimentProcessor] Mention ${doc._id} had non-analyzable text — marked neutral.`);
+        await Mention.updateOne(
+          { _id: doc._id },
+          {
+            $set: {
+              sentimentStatus: "completed",
+              sentiment: {
+                vader_score: 0.5,
+                distilbert_score: 0.5,
+                final_score: 0.5,
+                label: "neutral",
+                confidence: 0,
+                analyzedAt: new Date(),
+              },
+            },
+          }
+        ).catch(() => {});
+        processed++;
+      } else {
+        console.warn(`[SentimentProcessor] Failed to analyze mention ${doc._id}: ${msg}`);
+        await Mention.updateOne(
+          { _id: doc._id },
+          { $set: { sentimentStatus: "failed" } }
+        ).catch(() => {});
+        failed++;
+      }
     }
   }
 

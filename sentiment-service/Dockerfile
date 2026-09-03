@@ -1,24 +1,24 @@
-FROM python:3.10-slim as builder
-
-WORKDIR /app
-
-COPY requirements.txt .
-
-RUN pip install --upgrade pip && \
-    pip install --user --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --user --no-cache-dir -r requirements.txt
-
-# Second stage - final image
+# Build stage with uv
+FROM ghcr.io/astral-sh/uv:latest AS uv_bin
 FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY --from=builder /root/.local /root/.local
+# Copy uv binary from official uv image
+COPY --from=uv_bin /uv /uvx /bin/
 
-ENV PATH=/root/.local/bin:$PATH
+# Set uv environment variables for optimization
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_COMPILE_BYTECODE=1
+
+COPY requirements.txt .
+
+# Install CPU PyTorch and dependencies with uv
+RUN uv pip install --no-cache torch --index-url https://download.pytorch.org/whl/cpu && \
+    uv pip install --no-cache -r requirements.txt
 
 COPY . .
 
 EXPOSE 8030
 
-CMD ["python", "run.py"]
+CMD ["uv", "run", "python", "run.py"]

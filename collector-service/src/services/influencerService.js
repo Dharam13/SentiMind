@@ -301,7 +301,23 @@ function getMaxScoreForPlatform(platform) {
  * Aggregate and rank influencers for a project
  */
 async function getProjectInfluencers(projectId, hoursUsed = 24, keyword = null) {
-  const query = { projectId };
+  let query = {};
+  if (projectId && keyword && typeof keyword === "string" && keyword.trim()) {
+    query = {
+      $or: [
+        { projectId: { $in: [projectId, String(projectId), Number(projectId)] } },
+        { keyword: new RegExp(`^${keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
+      ],
+    };
+  } else if (projectId) {
+    query = {
+      projectId: { $in: [projectId, String(projectId), Number(projectId)] },
+    };
+  } else if (keyword && typeof keyword === "string" && keyword.trim()) {
+    query = {
+      keyword: new RegExp(`^${keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i"),
+    };
+  }
   
   if (hoursUsed && hoursUsed > 0) {
     const end = new Date();
@@ -309,19 +325,31 @@ async function getProjectInfluencers(projectId, hoursUsed = 24, keyword = null) 
     query.publishedAt = { $gte: start };
   }
 
-  if (keyword) {
-    query.keyword = keyword;
-  }
-
   const mentions = await Mention.find(query).lean().exec();
   const influencerMap = new Map();
 
   for (const mention of mentions) {
-    if (!mention.author) continue;
+    let author = (mention.author || "").trim();
+    if (!author) {
+      if (mention.platform === "linkedin") {
+        const title = mention.metadata?.title || mention.content || "";
+        const colonMatch = title.match(/^([^:\n]{3,40})\s+on\s+LinkedIn\s*:/i);
+        if (colonMatch) author = colonMatch[1].trim();
+        else {
+          const dashMatch = title.match(/-\s*([^-\n]{3,40})\s*$/i);
+          if (dashMatch && !dashMatch[1].toLowerCase().includes("linkedin")) author = dashMatch[1].trim();
+          else author = "LinkedIn Industry Voice";
+        }
+      } else if (mention.platform === "news" || mention.platform === "medium") {
+        author = mention.metadata?.source || (mention.platform === "medium" ? "Medium Writer" : "News Editorial");
+      } else {
+        author = `${mention.platform.charAt(0).toUpperCase() + mention.platform.slice(1)} Contributor`;
+      }
+    }
 
-    const authorKey = `${mention.author}::${mention.platform}`;
+    const authorKey = `${author}::${mention.platform}`;
     const influencer = influencerMap.get(authorKey) || {
-      author: mention.author,
+      author: author,
       platform: mention.platform,
       mentions: [],
       stats: {
@@ -462,6 +490,7 @@ async function getTopInfluencersCrossPlatform(projectId, hoursUsed = 24, keyword
         sources: new Set(),
       },
       metricsBreakdown: [],
+      sampleMentions: [],
     };
 
     combined.platforms.push({
@@ -471,7 +500,24 @@ async function getTopInfluencersCrossPlatform(projectId, hoursUsed = 24, keyword
       engagement: influencer.stats.totalEngagement,
       reach: influencer.stats.totalReach,
       isEstimated: influencer.dataQuality.hasEstimatedMetrics && !influencer.dataQuality.hasActualMetrics,
+      sourceUrl: (influencer.mentions && influencer.mentions[0]?.sourceUrl) || null,
     });
+
+    // Add up to 5 clean sample mentions with URLs
+    if (influencer.mentions && influencer.mentions.length > 0) {
+      for (const m of influencer.mentions) {
+        if (combined.sampleMentions.length < 5) {
+          combined.sampleMentions.push({
+            id: String(m._id),
+            content: m.content || m.metadata?.title || "",
+            platform: m.platform,
+            sourceUrl: m.sourceUrl || null,
+            publishedAt: m.publishedAt,
+            sentiment: m.sentiment?.label || "neutral",
+          });
+        }
+      }
+    }
 
     combined.stats.totalMentions += influencer.stats.totalMentions;
     combined.stats.totalEngagement += influencer.stats.totalEngagement;

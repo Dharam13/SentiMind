@@ -18,18 +18,19 @@ import { DeepAnalysisView } from "../components/dashboard/DeepAnalysisView";
 import { SourcesView } from "../components/dashboard/SourcesView";
 import { ComparisonView } from "../components/dashboard/ComparisonView";
 import { ReportsView } from "../components/dashboard/ReportsView";
+import { AgentOrchestratorView } from "../components/dashboard/AgentOrchestratorView";
 import * as projectApi from "../lib/projectApi";
 import * as collectorApi from "../lib/collectorApi";
 import {
   MessageSquare, TrendingUp, Search, Globe, Users, Scale,
   Mail, FileText, BarChart3, Palette, MapPin, Play, Loader2,
-  User, LogOut, Wrench
+  User, LogOut, Wrench, Bot
 } from "lucide-react";
 
 type Project = projectApi.Project;
 
 type SourceFilter = "all" | "social" | "news" | "blogs";
-type NavItem = "mentions" | "summary" | "analysis" | "sources" | "influencers" | "comparison" | "email-reports" | "pdf-report" | "excel-export" | "infographic";
+type NavItem = "agent" | "mentions" | "summary" | "analysis" | "sources" | "influencers" | "comparison" | "email-reports" | "pdf-report" | "excel-export" | "infographic";
 type GraphTab = "mentions-reach" | "sentiment";
 
 function platformLabel(platform: string) {
@@ -189,45 +190,72 @@ export function ProjectDashboard() {
     }));
   }, [summary]);
 
-  // Sentiment chart from stored MongoDB data (group by date, count by sentiment.label)
+  // Sentiment chart from stored MongoDB data (group by hour/date, count by sentiment.label)
   const sentimentData = useMemo(() => {
     const list = summary?.mentions ?? [];
     const withSentiment = list.filter(
-      (m) => m.sentimentStatus === "completed" && m.sentiment?.label
+      (m) => (m.sentimentStatus === "completed" || m.sentiment?.label) && m.sentiment
     );
     if (withSentiment.length === 0) {
       return [];
     }
-    const byDate = new Map<
+
+    // Determine if we should group by hour (for 24h window) or by day
+    const timestamps = withSentiment
+      .map((m) => (m.publishedAt ? new Date(m.publishedAt).getTime() : 0))
+      .filter((t) => t > 0);
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps);
+    const isSingleDay = maxTime - minTime <= 36 * 60 * 60 * 1000;
+
+    const byBucket = new Map<
       string,
       { date: string; positive: number; neutral: number; negative: number }
     >();
+
     for (const m of withSentiment) {
-      const d = m.publishedAt
-        ? new Date(m.publishedAt).toISOString().slice(0, 10)
-        : "";
-      if (!d) continue;
-      const row = byDate.get(d) || {
-        date: d,
+      if (!m.publishedAt) continue;
+      const dObj = new Date(m.publishedAt);
+      if (isNaN(dObj.getTime())) continue;
+
+      const bucketKey = isSingleDay
+        ? `${String(dObj.getHours()).padStart(2, "0")}:00`
+        : dObj.toISOString().slice(0, 10);
+
+      const row = byBucket.get(bucketKey) || {
+        date: bucketKey,
         positive: 0,
         neutral: 0,
         negative: 0,
       };
-      const label = (m.sentiment!.label || "").toLowerCase();
+
+      const label = (m.sentiment?.label || "neutral").toLowerCase();
       if (label === "positive") row.positive += 1;
       else if (label === "negative") row.negative += 1;
       else row.neutral += 1;
-      byDate.set(d, row);
+
+      byBucket.set(bucketKey, row);
     }
-    return Array.from(byDate.values()).sort((a, b) =>
+
+    let result = Array.from(byBucket.values()).sort((a, b) =>
       a.date.localeCompare(b.date)
     );
+
+    // If only 1 bucket, pad with a starter point so AreaChart renders a visual gradient
+    if (result.length === 1) {
+      const single = result[0];
+      result = [
+        { date: "Start", positive: 0, neutral: 0, negative: 0 },
+        single,
+        { date: "Current", positive: single.positive, neutral: single.neutral, negative: single.negative },
+      ];
+    }
+
+    return result;
   }, [summary]);
 
   const sentimentChartData = useMemo(() => {
-    const data = sentimentData;
-    if (data.length === 0) return [];
-    return data;
+    return sentimentData;
   }, [sentimentData]);
 
   const byPlatform = useMemo(() => {
@@ -329,6 +357,28 @@ export function ProjectDashboard() {
           </div>
 
           <nav className="flex-1 px-3 py-6 text-sm overflow-y-auto">
+            <div className="px-3 text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center justify-between">
+              <span>Agentic Commerce</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-bold">Track 01</span>
+            </div>
+            <div className="space-y-1.5 mb-6">
+              <button
+                type="button"
+                onClick={() => setNav("agent")}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition duration-200 ${
+                  nav === "agent"
+                    ? "bg-gradient-to-r from-indigo-600/30 to-violet-600/20 text-indigo-300 border border-indigo-500/40 shadow-lg shadow-indigo-500/20"
+                    : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Bot className={`h-4 w-4 ${nav === "agent" ? "text-indigo-400 animate-pulse" : "text-slate-400"}`} />
+                <span className="flex-1">Agent Orchestrator</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                  Active
+                </span>
+              </button>
+            </div>
+
             <div className="px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
               Analysis
             </div>
@@ -824,6 +874,10 @@ export function ProjectDashboard() {
                       )}
                     </div>
                   </>
+                )}
+
+                {nav === "agent" && (
+                  <AgentOrchestratorView projectId={projectId} />
                 )}
 
                 {nav === "influencers" && (

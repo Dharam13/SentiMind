@@ -206,6 +206,15 @@ export interface DataQuality {
   sources: string[];
 }
 
+export interface SampleMention {
+  id: string;
+  content: string;
+  platform: Platform;
+  sourceUrl?: string | null;
+  publishedAt?: string;
+  sentiment?: string;
+}
+
 export interface InfluencerPlatformScore {
   platform: Platform;
   influenceScore: number;
@@ -213,6 +222,7 @@ export interface InfluencerPlatformScore {
   engagement: number;
   reach: number;
   isEstimated: boolean;
+  sourceUrl?: string | null;
 }
 
 export interface InfluencerSentimentBreakdown {
@@ -238,6 +248,7 @@ export interface Influencer {
   compositeScore: number;
   dataQuality: DataQuality;
   metricsBreakdown: MetricsBreakdown[];
+  sampleMentions?: SampleMention[];
 }
 
 export interface ProjectInfluencersResponse {
@@ -254,7 +265,7 @@ export interface ProjectInfluencersResponse {
 export async function getProjectInfluencers(params: {
   projectId: number;
   keyword?: string;
-  hours?: number;
+  hours?: number | string;
   limit?: number;
 }): Promise<ProjectInfluencersResponse> {
   const q = new URLSearchParams();

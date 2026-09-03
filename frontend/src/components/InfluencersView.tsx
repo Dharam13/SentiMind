@@ -3,7 +3,7 @@ import * as collectorApi from "../lib/collectorApi";
 import {
   Users, BarChart3, Target, MessageSquare, SlidersHorizontal,
   Globe, Radio, Zap, ThumbsUp, ThumbsDown, Minus,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, ExternalLink
 } from "lucide-react";
 
 type Platform = collectorApi.Platform;
@@ -15,6 +15,27 @@ interface InfluencersViewProps {
   hours: number | "lifetime";
   keyword?: string;
   loadingParent?: boolean;
+}
+
+function getPlatformProfileUrl(author: string, platform: string, sourceUrl?: string | null) {
+  if (sourceUrl && (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://"))) {
+    return sourceUrl;
+  }
+  const clean = author.replace(/^[@/]+/, "").trim();
+  switch (platform.toLowerCase()) {
+    case "youtube":
+      return `https://www.youtube.com/results?search_query=${encodeURIComponent(clean)}`;
+    case "twitter":
+      return `https://twitter.com/${encodeURIComponent(clean)}`;
+    case "reddit":
+      return `https://www.reddit.com/user/${encodeURIComponent(clean)}`;
+    case "medium":
+      return `https://medium.com/@${encodeURIComponent(clean)}`;
+    case "linkedin":
+      return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(clean)}`;
+    default:
+      return `https://www.google.com/search?q=${encodeURIComponent(clean + " " + platform)}`;
+  }
 }
 
 function platformLabel(platform: string) {
@@ -94,8 +115,8 @@ export function InfluencersView({
         const response = await collectorApi.getProjectInfluencers({
           projectId,
           keyword,
-          hours: hours === "lifetime" ? undefined : hours,
-          limit: 100,
+          hours: hours === "lifetime" ? "lifetime" : hours,
+          limit: 200,
         });
         setInfluencers(response.influencers);
       } catch (err) {
@@ -360,8 +381,25 @@ export function InfluencersView({
                           {platformIcon(topPlatform?.platform || "twitter")}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-foreground truncate">
-                            {influencer.author}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground truncate">
+                              {influencer.author}
+                            </span>
+                            <a
+                              href={getPlatformProfileUrl(
+                                influencer.author,
+                                topPlatform?.platform || "youtube",
+                                topPlatform?.sourceUrl || influencer.sampleMentions?.[0]?.sourceUrl
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition inline-flex items-center gap-1 text-[11px] font-medium"
+                              title={`Open on ${platformLabel(topPlatform?.platform || "youtube")}`}
+                            >
+                              <span>Open {platformLabel(topPlatform?.platform || "youtube")}</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {influencer.stats.totalMentions} mention
@@ -391,8 +429,11 @@ export function InfluencersView({
                       })()}
 
                       {/* Engagement Badge */}
-                      <div className="rounded-lg border border-border/60 bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                        <MessageSquare className="h-3 w-3" /> {influencer.stats.totalEngagement.toLocaleString()}
+                      <div
+                        className="rounded-lg border border-border/60 bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground flex items-center gap-1.5"
+                        title="Total Engagement (Combined Likes + Comments + Shares)"
+                      >
+                        <Zap className="h-3 w-3 text-amber-400" /> {influencer.stats.totalEngagement.toLocaleString()} Eng.
                       </div>
 
                       {/* Sentiment Indicator */}
@@ -570,6 +611,54 @@ export function InfluencersView({
                         </div>
                       </div>
                     </div>
+
+                    {/* Sample Mentions & Content with direct links */}
+                    {influencer.sampleMentions && influencer.sampleMentions.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border/40">
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center justify-between">
+                          <span>Latest Posts & Video Mentions</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">Click to view on platform</span>
+                        </div>
+                        <div className="space-y-2">
+                          {influencer.sampleMentions.map((m, idx) => (
+                            <div
+                              key={m.id || idx}
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-card/60 border border-border/60 hover:border-primary/40 transition text-xs"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold flex-shrink-0">
+                                  {platformIcon(m.platform)}
+                                </span>
+                                <span className="text-foreground truncate flex-1">
+                                  {m.content || `Mention on ${platformLabel(m.platform)}`}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${
+                                    m.sentiment === "positive"
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : m.sentiment === "negative"
+                                      ? "bg-rose-500/20 text-rose-400"
+                                      : "bg-slate-700/50 text-slate-300"
+                                  }`}
+                                >
+                                  {m.sentiment}
+                                </span>
+                              </div>
+
+                              <a
+                                href={getPlatformProfileUrl(influencer.author, m.platform, m.sourceUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary transition inline-flex items-center gap-1 font-medium flex-shrink-0"
+                              >
+                                <span>Watch / View</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

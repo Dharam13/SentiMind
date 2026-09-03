@@ -194,14 +194,28 @@ async function getProjectSummary(req, res, next) {
     const hoursUsed =
       allTime ? 0 : (Number.isFinite(hoursParsed) && hoursParsed > 0 ? hoursParsed : DEFAULT_SUMMARY_HOURS);
 
-    const query = { projectId };
+    let query = {};
+    if (projectId && keyword && typeof keyword === "string" && keyword.trim()) {
+      query = {
+        $or: [
+          { projectId: { $in: [projectId, String(projectId), Number(projectId)] } },
+          { keyword: new RegExp(`^${keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
+        ],
+      };
+    } else if (projectId) {
+      query = {
+        projectId: { $in: [projectId, String(projectId), Number(projectId)] },
+      };
+    } else if (keyword && typeof keyword === "string" && keyword.trim()) {
+      query = {
+        keyword: new RegExp(`^${keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i"),
+      };
+    }
+
     if (!allTime) {
       const end = new Date();
       const start = new Date(end.getTime() - hoursUsed * 60 * 60 * 1000);
       query.publishedAt = { $gte: start };
-    }
-    if (keyword && typeof keyword === "string") {
-      query.keyword = keyword;
     }
 
     const [totalMentions, timeSeriesAgg, byPlatformAgg, sentimentAgg] = await Promise.all([
@@ -748,8 +762,11 @@ async function getProjectInfluencers(req, res, next) {
       return res.status(400).json({ error: "Query parameter 'projectId' must be a number" });
     }
 
-    const hoursUsed = hoursRaw ? parseInt(String(hoursRaw), 10) : DEFAULT_SUMMARY_HOURS;
-    const limit = limitRaw ? Math.min(parseInt(String(limitRaw), 10) || 50, 500) : 50;
+    const hoursStr = hoursRaw != null ? String(hoursRaw).trim().toLowerCase() : "";
+    const allTime = hoursStr === "all" || hoursStr === "total" || hoursStr === "lifetime" || hoursStr === "0";
+    const hoursParsed = allTime ? 0 : (hoursRaw ? parseInt(String(hoursRaw), 10) : NaN);
+    const hoursUsed = allTime ? 0 : (Number.isFinite(hoursParsed) && hoursParsed > 0 ? hoursParsed : DEFAULT_SUMMARY_HOURS);
+    const limit = limitRaw ? Math.min(parseInt(String(limitRaw), 10) || 100, 500) : 100;
 
     const { getTopInfluencersCrossPlatform } = require("../services/influencerService");
 

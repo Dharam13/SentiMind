@@ -83,6 +83,29 @@ services:
     networks:
       - sentimind-network
 
+  # Agent Service (Node.js - 4-Agent Autonomous Orchestrator)
+  agent-service:
+    build:
+      context: ./agent-service
+    container_name: sentimind-agent
+    ports:
+      - "8040:8040"
+    environment:
+      - NODE_ENV=production
+      - PORT=8040
+      - MONGODB_URI=${MONGODB_URI}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-rzp_test_mock_sentimind}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-mock_secret_key_12345}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-webhook_secret_key_123}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - MAX_AGENT_ACTIONS_PER_DAY=${MAX_AGENT_ACTIONS_PER_DAY:-50}
+      - MAX_DISCOUNT_PERCENT=${MAX_DISCOUNT_PERCENT:-25}
+    depends_on:
+      - collector-service
+      - sentiment-service
+    networks:
+      - sentimind-network
+
   # API Gateway
   api-gateway:
     build:
@@ -96,11 +119,13 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:3000
       - COLLECTOR_SERVICE_URL=http://collector-service:3001
       - SENTIMENT_SERVICE_URL=http://sentiment-service:8030
+      - AGENT_SERVICE_URL=http://agent-service:8040
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost,http://localhost:80}
     depends_on:
       - collector-service
       - auth-service
       - sentiment-service
+      - agent-service
     networks:
       - sentimind-network
 

@@ -28,6 +28,10 @@ const env = {
     /\/$/,
     ""
   ),
+  agentServiceUrl: optionalEnv("AGENT_SERVICE_URL", "http://localhost:8040").replace(
+    /\/$/,
+    ""
+  ),
 
   corsOrigin: optionalEnv("CORS_ORIGIN", "http://localhost:3000,http://localhost:3001"),
 };

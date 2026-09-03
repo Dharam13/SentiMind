@@ -4,9 +4,10 @@ Hybrid sentiment: VADER (rule-based) + DistilBERT (transformer) with weighted en
 - DistilBERT SST-2: positive probability as score 0-1
 - Ensemble: S = alpha * S_vader + (1 - alpha) * S_distilbert  (alpha = 0.4)
 - Classification:
-  - Wider neutral band: 0.35 <= S <= 0.65 (positive >= 0.65, negative < 0.35)
-  - Uncertainty override: if DistilBERT in [0.25, 0.75] -> neutral (model uncertain)
-  - VADER-neutral override: if VADER normalized in [0.45, 0.55] -> neutral (factual/no sentiment)
+  - Neutral band: 0.38 <= S <= 0.62
+  - Transformer uncertainty band: [0.20, 0.80]
+  - Neutral VADER protection: [0.42, 0.58]
+  - Prevents false-negative bias on short factual titles without description
 """
 
 import logging
@@ -20,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 ALPHA = 0.4  # weight for VADER; (1 - ALPHA) for DistilBERT
 
-# Neutral detection: wider band + overrides for factual/uncertain cases
-NEUTRAL_FINAL_LOW = 0.35
-NEUTRAL_FINAL_HIGH = 0.65
-DISTILBERT_UNCERTAIN_LOW = 0.25   # DistilBERT in [this, 1-this] -> uncertain -> neutral
-DISTILBERT_UNCERTAIN_HIGH = 0.75
-VADER_NEUTRAL_LOW = 0.45          # VADER normalized in [this, 1-this] -> no strong sentiment
-VADER_NEUTRAL_HIGH = 0.55
+# Neutral detection thresholds
+NEUTRAL_FINAL_LOW = 0.38
+NEUTRAL_FINAL_HIGH = 0.62
+DISTILBERT_UNCERTAIN_LOW = 0.20   # DistilBERT in [this, 1-this] -> uncertain -> neutral
+DISTILBERT_UNCERTAIN_HIGH = 0.80
+VADER_NEUTRAL_LOW = 0.42          # VADER normalized in [this, 1-this] -> no strong sentiment
+VADER_NEUTRAL_HIGH = 0.58
 
 # Global analyzer (created once)
 _vader_analyzer: Optional[SentimentIntensityAnalyzer] = None
@@ -52,7 +53,7 @@ def load_distilbert():
         _distilbert_pipeline = pipeline(
             "sentiment-analysis",
             model=_distilbert_model_name,
-            device=-1,  # CPU; use 0 or "cuda" for GPU
+            device=-1,  # CPU
             truncation=True,
             max_length=512,
         )
@@ -84,13 +85,10 @@ def vader_normalized(text: str) -> float:
 def distilbert_score(text: str) -> float:
     """
     Run DistilBERT sentiment and return positive-class probability in [0, 1].
-    Model outputs LABEL (POSITIVE/NEGATIVE) and SCORE. We return score for POSITIVE,
-    or 1 - score for NEGATIVE, so higher = more positive.
     """
     if not text or not text.strip():
-        return 0.5  # neutral when empty
+        return 0.5
     pipe = get_distilbert_pipeline()
-    # pipeline returns list of dicts, e.g. [{"label": "POSITIVE", "score": 0.9998}]
     result = pipe(text.strip()[:512], truncation=True, max_length=512)
     if not result:
         return 0.5
@@ -104,37 +102,39 @@ def distilbert_score(text: str) -> float:
 
 def classify(final_score: float, s_vader_norm: float, s_distilbert: float) -> str:
     """
-    Map final ensemble score to sentiment label with improved neutral detection.
-    - Use a wider neutral band (0.35-0.65).
-    - If DistilBERT is uncertain (score in [0.25, 0.75]), treat as neutral.
-    - If VADER is neutral (normalized in [0.45, 0.55]), treat as neutral (factual statements).
+    Map final ensemble score to sentiment label with balanced neutral protection.
+    - Prevents binary DistilBERT from misclassifying factual titles as negative.
+    - If VADER is neutral/non-negative (s_vader_norm >= 0.45), text is NOT negative.
     """
-    # Override 1: DistilBERT uncertain -> neutral (factual/mixed often get mid-range scores)
-    if DISTILBERT_UNCERTAIN_LOW <= s_distilbert <= DISTILBERT_UNCERTAIN_HIGH:
-        return "neutral"
-    # Override 2: VADER found no strong sentiment -> neutral (e.g. "The device has 8GB RAM")
+    # If VADER detects zero or neutral sentiment, protect against false negative bias
     if VADER_NEUTRAL_LOW <= s_vader_norm <= VADER_NEUTRAL_HIGH:
         return "neutral"
-    # Standard band: wider neutral range
+
+    # If DistilBERT is in the uncertain range, treat as neutral
+    if DISTILBERT_UNCERTAIN_LOW <= s_distilbert <= DISTILBERT_UNCERTAIN_HIGH:
+        return "neutral"
+
+    # If VADER is neutral/positive but DistilBERT binary SST-2 leans negative on short text, keep neutral
+    if s_vader_norm >= 0.48 and final_score < NEUTRAL_FINAL_LOW:
+        return "neutral"
+
+    # Standard decision boundaries
     if final_score >= NEUTRAL_FINAL_HIGH:
         return "positive"
-    if final_score > NEUTRAL_FINAL_LOW:
+    if final_score >= NEUTRAL_FINAL_LOW:
         return "neutral"
+
     return "negative"
 
 
 def confidence(final_score: float, distilbert_score_val: float, sentiment: str) -> float:
     """
     Confidence in [0, 1]: use DistilBERT's probability for the predicted class.
-    - positive -> distilbert_score (prob of positive)
-    - negative -> 1 - distilbert_score
-    - neutral -> 1 - 2 * abs(distilbert_score - 0.5)  (closeness to 0.5)
     """
     if sentiment == "positive":
         return round(distilbert_score_val, 2)
     if sentiment == "negative":
         return round(1.0 - distilbert_score_val, 2)
-    # neutral: how close distilbert is to 0.5
     return round(1.0 - 2.0 * abs(distilbert_score_val - 0.5), 2)
 
 
@@ -150,7 +150,6 @@ class SentimentResult:
 def analyze(text: str) -> SentimentResult:
     """
     Run full hybrid pipeline: VADER + DistilBERT, then weighted ensemble.
-    All scores in 0-1 range (VADER normalized). Logs inference time.
     """
     t0 = time.perf_counter()
 

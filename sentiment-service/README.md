@@ -2,18 +2,18 @@
 
 Hybrid sentiment analysis microservice combining **VADER** (rule-based, fast, social-media oriented) and **DistilBERT** (context-aware transformer) using a weighted ensemble.
 
-## Setup
+## Setup with `uv`
 
-**You must install dependencies before running.** If you see `ModuleNotFoundError: No module named 'vaderSentiment'`, run the steps below.
+**Fast setup with `uv`:**
 
 ```bash
 cd sentiment-service
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-# source .venv/bin/activate
-pip install -r requirements.txt
+
+# Create virtualenv with uv:
+uv venv
+
+# Install dependencies with uv:
+uv pip install -r requirements.txt
 ```
 
 Then run the service (see **Run** below). The collector will call this service for sentiment; if it is not running, you will see `[SentimentProcessor] Failed to analyze mention ...` with a connection error in the collector logs.
@@ -21,8 +21,6 @@ Then run the service (see **Run** below). The collector will call this service f
 ## Run
 
 ```bash
-python run.py
-# or
 uvicorn app.main:app --host 0.0.0.0 --port 8030
 ```
 

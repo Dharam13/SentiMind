@@ -4,11 +4,13 @@
   "private": true,
   "description": "Sentimind - Brand sentiment analysis platform",
   "scripts": {
-    "dev": "concurrently -n gateway,auth,frontend,collector -c blue,magenta,cyan,green \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix frontend\" \"npm run dev --prefix collector-service\"",
+    "dev": "concurrently -n gateway,auth,frontend,collector,agent,sentiment -c blue,magenta,cyan,green,yellow,red \"npm run dev --prefix api-gateway\" \"npm run dev --prefix auth-service\" \"npm run dev --prefix frontend\" \"npm run dev --prefix collector-service\" \"npm run dev --prefix agent-service\" \"npm run dev --prefix sentiment-service\"",
     "dev:gateway": "npm run dev --prefix api-gateway",
     "dev:auth": "npm run dev --prefix auth-service",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:collector": "npm run dev --prefix collector-service"
+    "dev:collector": "npm run dev --prefix collector-service",
+    "dev:agent": "npm run dev --prefix agent-service",
+    "dev:sentiment": "npm run dev --prefix sentiment-service"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

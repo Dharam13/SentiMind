@@ -117,7 +117,19 @@ async function fetchRedditMentions({ keyword, limit = 20, hours }) {
       .filter((post) => {
         if (!post?.created_utc) return false;
         const created = new Date(post.created_utc * 1000);
-        return created >= start;
+        if (created < start) return false;
+
+        // Keyword relevance check: ensure brand keyword actually appears in title, text, or subreddit
+        if (keyword && typeof keyword === "string" && keyword.trim()) {
+          const kw = keyword.trim().toLowerCase();
+          const title = (post.title || "").toLowerCase();
+          const selftext = (post.selftext || "").toLowerCase();
+          const subreddit = (post.subreddit || "").toLowerCase();
+          if (!title.includes(kw) && !selftext.includes(kw) && !subreddit.includes(kw)) {
+            return false;
+          }
+        }
+        return true;
       })
       .map((post) => {
         const createdAt = new Date(post.created_utc * 1000);

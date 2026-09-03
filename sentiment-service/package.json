@@ -2,9 +2,11 @@
   "name": "sentiment-service",
   "version": "1.0.0",
   "private": true,
-  "description": "Hybrid VADER + DistilBERT sentiment analysis",
+  "description": "Hybrid VADER + DistilBERT sentiment analysis (powered by uv)",
   "scripts": {
-    "dev": "python run.py",
-    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8030"
+    "dev": "uv run python run.py",
+    "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8030",
+    "sync": "uv sync",
+    "install": "uv pip install -r requirements.txt"
   }
 }

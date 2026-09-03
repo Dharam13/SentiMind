@@ -89,7 +89,17 @@ async def analyze_sentiment(request: SentimentRequest) -> SentimentResponse:
     try:
         cleaned = preprocess(request.text)
         if not cleaned.strip():
-            raise HTTPException(status_code=400, detail="Text is empty after preprocessing.")
+            return JSONResponse(
+                content={
+                    "vader_score": 0.5,
+                    "distilbert_score": 0.5,
+                    "final_score": 0.5,
+                    "sentiment": "neutral",
+                    "confidence": 0.0,
+                    "processed_text": "",
+                },
+                headers={"X-Inference-Ms": "0.00"},
+            )
         # Run blocking inference in thread pool so we don't block the event loop
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, analyze, cleaned)

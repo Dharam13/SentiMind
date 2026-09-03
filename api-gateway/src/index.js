@@ -19,7 +19,18 @@ app.timeout = 180000; // 3 minutes
 const corsOrigins = env.corsOrigin.split(",").map((o) => o.trim());
 app.use(
   cors({
-    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+      if (
+        corsOrigins.includes(origin) ||
+        corsOrigins.includes("*") ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      callback(null, true); // Permissive in dev
+    },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -162,6 +173,28 @@ app.use(
         console.error("[gateway] sentiment proxy error:", err.message);
         if (!res.headersSent) {
           res.status(502).json({ error: "Sentiment service unavailable" });
+        }
+      },
+    },
+  })
+);
+
+app.use(
+  "/api/agent",
+  createProxyMiddleware({
+    target: env.agentServiceUrl,
+    changeOrigin: true,
+    pathRewrite: { "^/": "/api/agent/" },
+    timeout: 30000,
+    proxyTimeout: 30000,
+    on: {
+      proxyReq(proxyReq, req) {
+        if (req.headers.origin) proxyReq.setHeader("Origin", req.headers.origin);
+      },
+      error(err, req, res) {
+        console.error("[gateway] agent proxy error:", err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: "Agent service unavailable" });
         }
       },
     },
