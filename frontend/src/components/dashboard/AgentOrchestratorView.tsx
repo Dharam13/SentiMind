@@ -21,6 +21,8 @@ import {
   ArrowRight,
   Shield,
   BarChart3,
+  ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 import * as agentApi from "../../lib/agentApi";
 
@@ -805,26 +807,87 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
                     {formatTime(act.createdAt)}
                   </div>
 
+                  {/* Outreach Message / Agent Direct Action */}
+                  {act.outreachMessage && act.status !== "blocked" && (
+                    <div className="col-span-6 mt-2 rounded-lg border border-indigo-500/20 bg-indigo-950/20 p-2.5 text-xs">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                          <MessageSquare className="h-3 w-3" /> Agent Response Sent via {act.platform}
+                        </span>
+                        {act.razorpay?.paymentLinkUrl && (
+                          <span className="text-[10px] font-mono text-slate-400">
+                            ID: {act.razorpay.paymentLinkId || "rzp_link"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed font-mono bg-slate-950/40 rounded p-2 border border-slate-800/40">
+                        {act.outreachMessage}
+                      </p>
+                      {act.razorpay?.paymentLinkUrl && (
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 pt-1">
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={act.razorpay.paymentLinkUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-neon-cyan hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Open Live Razorpay Checkout
+                            </a>
+                            <button
+                              onClick={() => copyToClipboard(act.razorpay!.paymentLinkUrl!, act._id)}
+                              className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 border border-slate-700/60 rounded px-1.5 py-0.5 bg-slate-800/40"
+                              title="Copy checkout link"
+                            >
+                              {copiedId === act._id ? (
+                                <>
+                                  <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" /> Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-2.5 w-2.5" /> Copy Link
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {act.status !== "converted" && (
+                            <button
+                              onClick={() => handleMarkPayment(act._id)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded border border-emerald-500/30 text-[10px] font-semibold inline-flex items-center gap-1 transition-all"
+                            >
+                              <DollarSign className="h-3 w-3" /> Simulate Customer Payment
+                            </button>
+                          )}
+                          {act.status === "converted" && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                              <CheckCircle2 className="h-3 w-3" /> Payment Converted (+₹{act.razorpay.amountINR || 499})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Blocked by Policy Explanation */}
+                  {act.status === "blocked" && (
+                    <div className="col-span-6 mt-2 rounded-lg border border-amber-500/20 bg-amber-950/15 p-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400">
+                        <Shield className="h-3 w-3" /> Policy Guardrail Triggered:
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {act.actionReason || "Filtered due to non-consumer platform or account credibility below 50%. Anti-abuse policy prevented discount link issuance."}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Error display */}
                   {act.error && (
                     <div className="col-span-6 mt-1 flex items-center gap-1.5 text-[10px] text-rose-400">
                       <AlertTriangle className="h-3 w-3 flex-shrink-0" />
                       <span>{act.error.message}</span>
                       {act.error.willRetry && <span className="text-amber-400">(retry scheduled)</span>}
-                    </div>
-                  )}
-
-                  {/* Mark Paid button */}
-                  {act.razorpay?.paymentLinkUrl && act.status !== "converted" && act.status !== "failed" && act.status !== "blocked" && (
-                    <div className="col-span-6 mt-1 flex justify-end">
-                      <button
-                        onClick={() => handleMarkPayment(act._id)}
-                        disabled={actionLoading}
-                        className="px-2.5 py-1 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 rounded-md border border-emerald-500/20 text-[10px] font-semibold inline-flex items-center gap-1 transition-all"
-                      >
-                        <DollarSign className="h-3 w-3" />
-                        Simulate Payment
-                      </button>
                     </div>
                   )}
                 </div>

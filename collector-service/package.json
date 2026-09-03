@@ -11,6 +11,7 @@
     "test:db": "node test-mongodb.js"
   },
   "dependencies": {
+    "amqplib": "^0.10.4",
     "axios": "^1.7.9",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
@@ -18,8 +19,7 @@
     "express": "^4.21.2",
     "mongoose": "^8.8.0",
     "morgan": "^1.10.0",
-    "rss-parser": "^3.13.0",
-    "sentimind": "file:.."
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

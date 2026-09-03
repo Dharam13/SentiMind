@@ -144,6 +144,7 @@ export interface AgentAction {
   intentReasoning?: string;
   actionType: string;
   actionReason?: string;
+  outreachMessage?: string;
   credibilityScore: number;
   credibilityFactors: string[];
   safetyChecks: {

@@ -7,6 +7,7 @@
 
 const { Mention } = require("../models/Mention");
 const { analyzeSentiment } = require("./sentimentClient");
+const { dispatchBatchToCelery } = require("./rabbitmqClient");
 const { env } = require("../config/env");
 
 let intervalId = null;
@@ -59,6 +60,22 @@ async function processPendingBatch() {
   })
     .limit(limit)
     .lean();
+
+  if (pending.length === 0) return { processed: 0, failed: 0 };
+
+  // Attempt async Celery Chord dispatch via RabbitMQ first
+  try {
+    const dispatched = await dispatchBatchToCelery(pending, pending[0]?.projectId || 1);
+    if (dispatched) {
+      await Mention.updateMany(
+        { _id: { $in: pending.map((p) => p._id) } },
+        { $set: { sentimentStatus: "queued_celery" } }
+      );
+      return { processed: pending.length, failed: 0 };
+    }
+  } catch (queueErr) {
+    // If RabbitMQ unavailable, fallback smoothly to HTTP
+  }
 
   let processed = 0;
   let failed = 0;
