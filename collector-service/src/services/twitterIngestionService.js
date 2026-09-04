@@ -60,12 +60,12 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
           },
         },
         {
-          maxRetries: 1,
-          retryDelay: 1000,
-          timeout: 15000,
+          maxRetries: 2,
+          retryDelay: 5500, // 5.5s delay respects Twitter API.io 5s free-tier rate limit
+          timeout: 20000,
           onRetry: (attempt, maxAttempts, delay, error) => {
             console.warn(
-              `[Twitter] Retry ${attempt}/${maxAttempts} after ${delay}ms: ${error.message || error.code}`
+              `[Twitter] Retry ${attempt}/${maxAttempts} after ${delay}ms (rate limit backoff): ${error.message || error.code}`
             );
           },
         }
@@ -80,19 +80,72 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
       }
       cursor = res.data.next_cursor;
 
-      // Small delay to respect rate limits
+      // Delay to respect Twitter API.io 5-second rate limit
       if (page < maxPages - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 5500));
       }
     }
 
-    // Limit to requested amount and filter by time window
+    // If time-constrained query returned 0, fallback to general keyword query
+    if (allTweets.length === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 5500));
+      const broadRes = await get(
+        url,
+        {
+          params: { query: keyword, queryType: "Latest" },
+          headers: { "X-API-Key": env.twitterApiKey },
+        },
+        {
+          maxRetries: 1,
+          retryDelay: 5500,
+          timeout: 15000,
+        }
+      ).catch(() => null);
+      if (broadRes?.data?.tweets?.length) {
+        allTweets = broadRes.data.tweets;
+      }
+    }
+
+    // Fallback to official Twitter v2 API if Twitter API.io returned empty and bearer token is present
+    if (allTweets.length === 0 && env.twitterBearerToken) {
+      try {
+        const v2Res = await get(
+          "https://api.twitter.com/2/tweets/search/recent",
+          {
+            params: {
+              query: `${keyword} -is:retweet`,
+              max_results: Math.min(Math.max(limit, 10), 100),
+              "tweet.fields": "created_at,public_metrics,author_id",
+            },
+            headers: {
+              Authorization: `Bearer ${env.twitterBearerToken}`,
+            },
+          },
+          { maxRetries: 0, timeout: 10000 }
+        );
+        const v2Tweets = v2Res.data?.data || [];
+        allTweets = v2Tweets.map((t) => ({
+          id: t.id,
+          text: t.text,
+          createdAt: t.created_at,
+          likeCount: t.public_metrics?.like_count || 0,
+          retweetCount: t.public_metrics?.retweet_count || 0,
+          replyCount: t.public_metrics?.reply_count || 0,
+          url: `https://x.com/i/web/status/${t.id}`,
+        }));
+      } catch (v2Err) {
+        console.warn(`[Twitter] Official v2 fallback note: ${v2Err.message}`);
+      }
+    }
+
+    // Filter by time window first, then slice to limit
     allTweets = allTweets
-      .slice(0, limit)
       .filter((tweet) => {
+        if (!tweet.createdAt) return true;
         const tweetDate = new Date(tweet.createdAt);
-        return tweetDate >= start;
-      });
+        return isNaN(tweetDate.getTime()) || tweetDate >= start;
+      })
+      .slice(0, limit);
 
     const mentions = allTweets.map((tweet) => {
       const tweetUrl = tweet.url || `https://twitter.com/i/web/status/${tweet.id}`;
