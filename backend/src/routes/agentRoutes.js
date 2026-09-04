@@ -15,6 +15,27 @@ const { env } = require("../config/env");
 
 const router = Router();
 
+const ACTION_STATUS_PRIORITY = {
+  converted: 1,
+  approved: 2,
+  sent: 3,
+  executing: 4,
+  pending_approval: 5,
+  blocked: 6,
+  failed: 7,
+  permanently_failed: 8,
+  rejected: 9,
+};
+
+function sortActionsByStatusPriority(actionsList) {
+  return [...actionsList].sort((a, b) => {
+    const pA = ACTION_STATUS_PRIORITY[a.status] || 50;
+    const pB = ACTION_STATUS_PRIORITY[b.status] || 50;
+    if (pA !== pB) return pA - pB;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+}
+
 /**
  * GET /api/agent/overview
  * Executive summary for the Agentic Orchestrator Dashboard
@@ -24,7 +45,7 @@ router.get("/overview", async (req, res, next) => {
     const projectId = req.query.projectId ? parseInt(String(req.query.projectId), 10) : null;
     const filter = projectId ? { projectId } : {};
 
-    const [signalsCount, pendingCampaignsCount, activeCampaignsCount, actions, campaigns] = await Promise.all([
+    const [signalsCount, pendingCampaignsCount, activeCampaignsCount, rawActions, campaigns] = await Promise.all([
       Signal.countDocuments(filter),
       Campaign.countDocuments({ ...filter, status: "pending_approval" }),
       Campaign.countDocuments({ ...filter, status: { $in: ["approved", "executing", "active", "measured"] } }),
@@ -36,6 +57,8 @@ router.get("/overview", async (req, res, next) => {
         .lean(),
       Campaign.find(filter).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
+
+    const actions = sortActionsByStatusPriority(rawActions);
 
     const totalLinksCreated = actions.filter((a) => a.razorpay?.paymentLinkUrl).length;
     const totalConverted = actions.filter((a) => a.status === "converted").length;
@@ -121,12 +144,14 @@ router.get("/actions", async (req, res, next) => {
     const projectId = req.query.projectId ? parseInt(String(req.query.projectId), 10) : null;
     const filter = projectId ? { projectId } : {};
 
-    const actions = await AgentAction.find(filter)
+    const rawActions = await AgentAction.find(filter)
       .sort({ createdAt: -1 })
       .populate("mentionId")
       .populate("campaignId")
       .limit(100)
       .lean();
+
+    const actions = sortActionsByStatusPriority(rawActions);
 
     return res.status(200).json({ success: true, actions });
   } catch (err) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bot,
   TrendingDown,
@@ -138,6 +138,35 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [showSimMenu, setShowSimMenu] = useState(false);
   const [selectedAction, setSelectedAction] = useState<agentApi.AgentAction | null>(null);
+  const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "approved" | "blocked">("all");
+
+  const sortedActions = useMemo(() => {
+    const priority: Record<string, number> = {
+      converted: 1,
+      approved: 2,
+      sent: 3,
+      executing: 4,
+      pending_approval: 5,
+      blocked: 6,
+      failed: 7,
+      permanently_failed: 8,
+      rejected: 9,
+    };
+    const list = [...actions].sort((a, b) => {
+      const pA = priority[a.status] ?? 50;
+      const pB = priority[b.status] ?? 50;
+      if (pA !== pB) return pA - pB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    if (actionStatusFilter === "approved") {
+      return list.filter((a) => a.status === "approved" || a.status === "converted" || a.status === "sent");
+    }
+    if (actionStatusFilter === "blocked") {
+      return list.filter((a) => a.status === "blocked" || a.status === "failed" || a.status === "permanently_failed");
+    }
+    return list;
+  }, [actions, actionStatusFilter]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -762,80 +791,127 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-border/60 overflow-hidden bg-card shadow-sm">
-              {/* Table Header */}
-              <div className="grid grid-cols-[85px_1fr_95px_95px_75px_90px_75px] gap-2 px-4 py-2.5 bg-muted/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
-                <div>Status</div>
-                <div>Author & Content</div>
-                <div>Platform</div>
-                <div className="text-right">Amount</div>
-                <div className="text-center">Trust</div>
-                <div className="text-right">Time</div>
-                <div className="text-right">Action</div>
+            <div className="space-y-3">
+              {/* Action Filter Pills & Sort Notice */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-lg border border-border/50 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setActionStatusFilter("all")}
+                    className={`px-3 py-1 rounded-md font-medium transition-all ${
+                      actionStatusFilter === "all"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All Actions ({actions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActionStatusFilter("approved")}
+                    className={`px-3 py-1 rounded-md font-medium transition-all flex items-center gap-1.5 ${
+                      actionStatusFilter === "approved"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Approved & Active ({actions.filter((a) => a.status === "approved" || a.status === "converted").length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActionStatusFilter("blocked")}
+                    className={`px-3 py-1 rounded-md font-medium transition-all flex items-center gap-1.5 ${
+                      actionStatusFilter === "blocked"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    Blocked by Policy ({actions.filter((a) => a.status === "blocked" || a.status === "failed").length})
+                  </button>
+                </div>
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Prioritizing <strong>Approved Links</strong> on top</span>
+                </div>
               </div>
 
-              {/* Table Rows */}
-              {actions.map((act) => (
-                <div
-                  key={act._id}
-                  onClick={() => setSelectedAction(act)}
-                  className="grid grid-cols-[85px_1fr_95px_95px_75px_90px_75px] gap-2 px-4 py-3 border-b border-border/40 hover:bg-primary/5 cursor-pointer transition-colors items-center text-xs group"
-                >
-                  <div>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${statusColor(act.status)}`}>
-                      {act.status === "permanently_failed" ? "Failed" : formatLabel(act.status)}
-                    </span>
-                  </div>
+              <div className="rounded-xl border border-border/60 overflow-hidden bg-card shadow-sm">
+                {/* Table Header */}
+                <div className="grid grid-cols-[85px_1fr_95px_95px_75px_90px_75px] gap-2 px-4 py-2.5 bg-muted/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                  <div>Status</div>
+                  <div>Author & Content</div>
+                  <div>Platform</div>
+                  <div className="text-right">Amount</div>
+                  <div className="text-center">Trust</div>
+                  <div className="text-right">Time</div>
+                  <div className="text-right">Action</div>
+                </div>
 
-                  <div className="min-w-0 pr-2">
-                    <div className="font-semibold text-foreground truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
-                      <span>@{act.author}</span>
-                      {act.status === "converted" && (
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">Converted</span>
+                {/* Table Rows */}
+                {sortedActions.map((act) => (
+                  <div
+                    key={act._id}
+                    onClick={() => setSelectedAction(act)}
+                    className="grid grid-cols-[85px_1fr_95px_95px_75px_90px_75px] gap-2 px-4 py-3 border-b border-border/40 hover:bg-primary/5 cursor-pointer transition-colors items-center text-xs group"
+                  >
+                    <div>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${statusColor(act.status)}`}>
+                        {act.status === "permanently_failed" ? "Failed" : formatLabel(act.status)}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 pr-2">
+                      <div className="font-semibold text-foreground truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+                        <span>@{act.author}</span>
+                        {act.status === "converted" && (
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">Converted</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5 italic">"{act.mentionContent}"</div>
+                    </div>
+
+                    <div className="flex items-center">
+                      <PlatformBadge platform={act.platform} size="sm" />
+                    </div>
+
+                    <div className="text-right">
+                      {act.razorpay?.amountINR ? (
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{act.razorpay.amountINR}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground truncate mt-0.5 italic">"{act.mentionContent}"</div>
-                  </div>
 
-                  <div className="flex items-center">
-                    <PlatformBadge platform={act.platform} size="sm" />
-                  </div>
+                    <div className="text-center">
+                      <span className={`text-[10px] font-bold ${
+                        act.credibilityScore >= 0.7 ? "text-emerald-600 dark:text-emerald-400" :
+                        act.credibilityScore >= 0.4 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+                      }`}>
+                        {Math.round(act.credibilityScore * 100)}%
+                      </span>
+                    </div>
 
-                  <div className="text-right">
-                    {act.razorpay?.amountINR ? (
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{act.razorpay.amountINR}</span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </div>
+                    <div className="text-right text-[11px] text-muted-foreground font-mono">
+                      {formatTime(act.createdAt)}
+                    </div>
 
-                  <div className="text-center">
-                    <span className={`text-[10px] font-bold ${
-                      act.credibilityScore >= 0.7 ? "text-emerald-600 dark:text-emerald-400" :
-                      act.credibilityScore >= 0.4 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                    }`}>
-                      {Math.round(act.credibilityScore * 100)}%
-                    </span>
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAction(act);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                      >
+                        Inspect <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="text-right text-[11px] text-muted-foreground font-mono">
-                    {formatTime(act.createdAt)}
-                  </div>
-
-                  <div className="text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedAction(act);
-                      }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                    >
-                      Inspect <ChevronRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
