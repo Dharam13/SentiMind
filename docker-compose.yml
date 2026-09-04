@@ -1,27 +1,42 @@
 services:
-  # Sentiment Service (Python - FastAPI/Uvicorn)
+  # Sentiment Service (Python - FastAPI/Uvicorn & Celery worker)
   sentiment-service:
     build:
       context: ./sentiment-service
     container_name: sentimind-sentiment
     ports:
       - "8030:8030"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-rpc://}
+    depends_on:
+      - rabbitmq
     networks:
       - sentimind-network
 
-  # Collector Service (Node.js) - uses MongoDB Atlas via MONGODB_URI
+  # RabbitMQ Broker for Celery Sentiment Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sentimind-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - sentimind-network
+
+  # Collector Service (Node.js) - gathers social mentions and publishes to Celery
   collector-service:
     build:
       context: ./collector-service
     container_name: sentimind-collector
     ports:
-      - "3001:3001"
+      - "8021:8021"
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=8021
       - MONGODB_URI=${MONGODB_URI}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
       - SENTIMENT_SERVICE_URL=http://sentiment-service:8030
-      - SENTIMENT_PROCESSOR_ENABLED=${SENTIMENT_PROCESSOR_ENABLED:-true}
       - TWITTER_API_KEY=${TWITTER_API_KEY:-}
       - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN:-}
       - TWITTER_API_SECRET=${TWITTER_API_SECRET:-}
@@ -36,41 +51,20 @@ services:
       - NEWSDATA_API_KEY=${NEWSDATA_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - GOOGLE_SEARCH_CX=${GOOGLE_SEARCH_CX:-}
-      - TUMBLR_API_KEY=${TUMBLR_API_KEY:-}
     depends_on:
       - sentiment-service
+      - rabbitmq
     networks:
       - sentimind-network
 
-  # Auth Service (Node.js)
-  auth-service:
-    build:
-      context: ./auth-service
-    container_name: sentimind-auth
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
-      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN}
-      - REFRESH_TOKEN_EXPIRY_DAYS=${REFRESH_TOKEN_EXPIRY_DAYS}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - sentimind-network
-
-  # PostgreSQL for auth-service
+  # PostgreSQL for SentiMind Auth & Projects
   postgres:
     image: postgres:16-alpine
     container_name: sentimind-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: auth_db
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Padhit@13}
+      POSTGRES_DB: brand_auth_db
     ports:
       - "5432:5432"
     volumes:
@@ -83,63 +77,47 @@ services:
     networks:
       - sentimind-network
 
-  # Agent Service (Node.js - 4-Agent Autonomous Orchestrator)
-  agent-service:
+  # Unified Backend API (Auth, Projects, AI Agents, Razorpay & Downstream Proxy)
+  backend:
     build:
-      context: ./agent-service
-    container_name: sentimind-agent
+      context: ./backend
+    container_name: sentimind-backend
     ports:
-      - "8040:8040"
+      - "8000:8000"
     environment:
       - NODE_ENV=production
-      - PORT=8040
+      - PORT=8000
+      - DATABASE_URL=${DATABASE_URL}
       - MONGODB_URI=${MONGODB_URI}
-      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-rzp_test_mock_sentimind}
-      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-mock_secret_key_12345}
-      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-webhook_secret_key_123}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - MAX_AGENT_ACTIONS_PER_DAY=${MAX_AGENT_ACTIONS_PER_DAY:-50}
-      - MAX_DISCOUNT_PERCENT=${MAX_DISCOUNT_PERCENT:-25}
-    depends_on:
-      - collector-service
-      - sentiment-service
-    networks:
-      - sentimind-network
-
-  # API Gateway
-  api-gateway:
-    build:
-      context: ./api-gateway
-    container_name: sentimind-gateway
-    ports:
-      - "3100:3100"
-    environment:
-      - NODE_ENV=production
-      - PORT=3100
-      - AUTH_SERVICE_URL=http://auth-service:3000
-      - COLLECTOR_SERVICE_URL=http://collector-service:3001
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN:-15m}
+      - REFRESH_TOKEN_EXPIRY_DAYS=${REFRESH_TOKEN_EXPIRY_DAYS:-7}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:80
+      - COLLECTOR_SERVICE_URL=http://collector-service:8021
       - SENTIMENT_SERVICE_URL=http://sentiment-service:8030
-      - AGENT_SERVICE_URL=http://agent-service:8040
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost,http://localhost:80}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
-      - collector-service
-      - auth-service
-      - sentiment-service
-      - agent-service
+      postgres:
+        condition: service_healthy
+      collector-service:
+        condition: service_started
     networks:
       - sentimind-network
 
-  # Frontend (React + Vite)
+  # Frontend (React + Vite SPA)
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL:-http://localhost}
+        VITE_API_GATEWAY_URL: http://localhost:8000
     container_name: sentimind-frontend
     ports:
-      - "80:80"
+      - "3000:3000"
     depends_on:
-      - api-gateway
+      - backend
     networks:
       - sentimind-network
 

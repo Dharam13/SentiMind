@@ -5,7 +5,7 @@
 const AUTH_BASE =
   (import.meta.env.VITE_API_GATEWAY_URL as string) ||
   (import.meta.env.VITE_AUTH_API_URL as string) ||
-  "http://localhost";
+  "http://localhost:8000";
 
 export interface SignupBody {
   firstName: string;

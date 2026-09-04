@@ -1088,12 +1088,12 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
                       <button
                         onClick={async () => {
                           await handleMarkPayment(selectedAction._id);
-                          setSelectedAction((prev) => (prev ? { ...prev, status: "converted", revenueGeneratedPaise: prev.razorpay?.amountPaise || 76415, convertedAt: new Date().toISOString() } : null));
+                          setSelectedAction((prev) => (prev ? { ...prev, status: "converted", revenueGeneratedPaise: prev.razorpay?.amountPaise || 0, convertedAt: new Date().toISOString() } : null));
                         }}
                         disabled={actionLoading}
                         className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.01]"
                       >
-                        <DollarSign className="h-4 w-4" /> Simulate Customer Payment (+₹{selectedAction.razorpay?.amountINR || 764.15})
+                        <DollarSign className="h-4 w-4" /> Simulate Customer Payment (+₹{selectedAction.razorpay?.amountINR ? selectedAction.razorpay.amountINR.toLocaleString('en-IN') : (selectedAction.razorpay?.amountPaise ? (selectedAction.razorpay.amountPaise / 100).toLocaleString('en-IN') : "0")})
                       </button>
                     </div>
                   )}

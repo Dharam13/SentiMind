@@ -92,7 +92,7 @@ async function executeApprovedCampaigns(targetProjectId = null) {
           campaign.plannedActions[0];
 
         const actionType = isNegative ? "create_discount_offer" : "create_payment_link";
-        const amountPaise = matchedPlan ? matchedPlan.finalAmount : 299900;
+        const amountPaise = matchedPlan ? matchedPlan.finalAmount : (campaign.plannedActions?.[0]?.finalAmount || 49900);
 
         // 3. Safety Guardrail Verification
         const safetyChecks = {
@@ -124,7 +124,7 @@ async function executeApprovedCampaigns(targetProjectId = null) {
           sentimentLabel: mention.sentiment?.label,
           sentimentConfidence: mention.sentiment?.confidence,
           intentClassification: isNegative ? "complaint" : "purchase_intent",
-          intentConfidence: 0.88,
+          intentConfidence: credibility.score || (mention.sentiment?.confidence ?? 0.85),
           intentReasoning: matchedPlan?.reasoning || "Campaign targeted remediation",
           actionType: isSafeToExecute ? actionType : "blocked_by_safety",
           actionReason: isSafeToExecute
@@ -241,7 +241,7 @@ async function retryFailedActions() {
       logger.info("Agent:PaymentRetry", `Retrying failed action: ${action.idempotencyKey}`);
 
       const rzpResponse = await createPaymentLink({
-        amountPaise: 299900,
+        amountPaise: action.razorpay?.amountPaise || 49900,
         description: "Recovered SentiMind Payment Link",
         customerName: action.author,
         idempotencyKey: action.idempotencyKey,
