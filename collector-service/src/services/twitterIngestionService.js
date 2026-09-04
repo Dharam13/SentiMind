@@ -27,11 +27,8 @@ async function fetchTwitterMentions({ keyword, limit = 20, hours }) {
   const day = String(start.getUTCDate()).padStart(2, "0");
   const hoursStr = String(start.getUTCHours()).padStart(2, "0");
   const minutes = String(start.getUTCMinutes()).padStart(2, "0");
-  const seconds = String(start.getUTCSeconds()).padStart(2, "0");
-  const startDate = `${year}-${month}-${day}_${hoursStr}:${minutes}:${seconds}_UTC`;
-  
-  // Build query with time filter using Twitter advanced search syntax
-  const query = `${keyword} since:${startDate}`;
+  // Build query directly using keyword (no timeline restriction so recent tweets are always returned)
+  const query = keyword;
 
   const params = {
     query: query,
