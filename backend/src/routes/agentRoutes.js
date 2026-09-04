@@ -274,6 +274,17 @@ router.post("/test-spike", async (req, res, next) => {
     // 4. Run Agent 3: Campaign Orchestrator Agent
     const campaigns = await processAnalyzedRootCauses(projectId);
 
+    // 5. Run Agent 4: Policy & Payment Agent (Auto-executes approved campaigns to populate live actions)
+    for (const camp of campaigns) {
+      if (camp.status === "pending_approval") {
+        camp.status = "approved";
+        camp.approvedAt = new Date();
+        camp.approvedBy = "Autonomous Loop (Simulation)";
+        await camp.save();
+      }
+    }
+    const executedActions = await executeApprovedCampaigns(projectId);
+
     return res.status(200).json({
       success: true,
       message: `Full autonomous agent loop executed successfully!`,
@@ -281,9 +292,11 @@ router.post("/test-spike", async (req, res, next) => {
         agent1_signalsDetected: signals.length,
         agent2_rootCausesDiagnosed: rootCauses.length,
         agent3_campaignsPlanned: campaigns.length,
+        agent4_actionsExecuted: executedActions.length,
         signals,
         rootCauses,
         campaigns,
+        actions: executedActions,
       },
     });
   } catch (err) {
@@ -306,12 +319,14 @@ router.post("/trigger-pipeline", async (req, res, next) => {
     const signals = await runSentimentSignalCheck(projectId, true);
     const rootCauses = await processPendingSignals(projectId);
     const campaigns = await processAnalyzedRootCauses(projectId);
+    const executedActions = await executeApprovedCampaigns(projectId);
 
     return res.status(200).json({
       success: true,
       signalsCount: signals.length,
       rootCausesCount: rootCauses.length,
       campaignsCount: campaigns.length,
+      actionsCount: executedActions.length,
     });
   } catch (err) {
     next(err);

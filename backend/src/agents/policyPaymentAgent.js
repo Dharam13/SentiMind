@@ -42,7 +42,14 @@ async function executeApprovedCampaigns(targetProjectId = null) {
       if (campaign.signalId) {
         const signal = await Signal.findById(campaign.signalId);
         if (signal && signal.triggeringMentionIds?.length) {
-          mentions = await Mention.find({ _id: { $in: signal.triggeringMentionIds } }).lean();
+          const rawMentions = await Mention.find({ _id: { $in: signal.triggeringMentionIds } }).lean();
+          // Prioritize actionable conversational platforms (twitter, reddit, youtube) first, then take top 10
+          rawMentions.sort((a, b) => {
+            const aAct = ["twitter", "reddit", "youtube"].includes(a.platform) ? 1 : 0;
+            const bAct = ["twitter", "reddit", "youtube"].includes(b.platform) ? 1 : 0;
+            return bAct - aAct;
+          });
+          mentions = rawMentions.slice(0, 10);
         }
       }
 
@@ -155,6 +162,9 @@ async function executeApprovedCampaigns(targetProjectId = null) {
 
         // 4. Razorpay Execution
         try {
+          // Add pacing delay to respect Razorpay API burst limits
+          await new Promise((resolve) => setTimeout(resolve, 400));
+
           // Trigger Razorpay Payment Link API
           const rzpResponse = await createPaymentLink({
             amountPaise,
