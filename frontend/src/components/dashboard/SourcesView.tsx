@@ -3,31 +3,15 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { Globe, ExternalLink, Twitter, MessageSquare, Youtube, BookOpen, Linkedin, Newspaper } from "lucide-react";
+import { Globe, ExternalLink } from "lucide-react";
 import type { ProjectSummaryResponse } from "../../lib/collectorApi";
+import { renderPlatformIcon, platformLabel, getPlatformStyle } from "../common/PlatformIcon";
 
 const PLATFORM_COLORS: Record<string, string> = {
   twitter: "#1DA1F2", reddit: "#FF4500", youtube: "#FF0000",
   medium: "#00AB6C", linkedin: "#0A66C2", tumblr: "#35465C",
-  news: "#8b5cf6",
+  news: "#6366F1",
 };
-
-function platformLabel(p: string) {
-  const map: Record<string, string> = { twitter: "Twitter", reddit: "Reddit", youtube: "YouTube", medium: "Medium", linkedin: "LinkedIn", tumblr: "Tumblr", news: "News" };
-  return map[p] ?? p;
-}
-
-function renderPlatformIcon(p: string, className = "h-5 w-5") {
-  switch (p) {
-    case "twitter": return <Twitter className={className} />;
-    case "reddit": return <MessageSquare className={className} />;
-    case "youtube": return <Youtube className={className} />;
-    case "medium": return <BookOpen className={className} />;
-    case "linkedin": return <Linkedin className={className} />;
-    case "news": return <Newspaper className={className} />;
-    default: return <Globe className={className} />;
-  }
-}
 
 interface Props {
   summary: ProjectSummaryResponse | null;
@@ -130,8 +114,8 @@ export function SourcesView({ summary, loading }: Props) {
           <div key={p.platform} className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl p-6 shadow-neon hover:shadow-neon-lg transition duration-200">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundColor: p.color }}>
-                  {renderPlatformIcon(p.platform)}
+                <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm ${getPlatformStyle(p.platform).containerBg}`}>
+                  {renderPlatformIcon(p.platform, "h-6 w-6")}
                 </span>
                 <div>
                   <h4 className="text-base font-bold text-foreground">{p.label}</h4>

@@ -22,10 +22,10 @@ import {
   Shield,
   BarChart3,
   ExternalLink,
-  MessageSquare,
   X,
 } from "lucide-react";
 import * as agentApi from "../../lib/agentApi";
+import { renderPlatformIcon, platformLabel, PlatformBadge } from "../common/PlatformIcon";
 
 interface Props {
   projectId: number;
@@ -775,8 +775,8 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
                     <div className="text-[11px] text-muted-foreground truncate mt-0.5 italic">"{act.mentionContent}"</div>
                   </div>
 
-                  <div className="text-muted-foreground uppercase text-[10px] font-semibold">
-                    {act.platform}
+                  <div className="flex items-center">
+                    <PlatformBadge platform={act.platform} size="sm" />
                   </div>
 
                   <div className="text-right">
@@ -815,8 +815,8 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
                   {act.outreachMessage && act.status !== "blocked" && (
                     <div className="col-span-6 mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-xs">
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                          <MessageSquare className="h-3 w-3" /> Agent Response Sent via {act.platform}
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-foreground">
+                          {renderPlatformIcon(act.platform, "h-3.5 w-3.5")} Agent Response Sent via {platformLabel(act.platform)}
                         </span>
                         {act.razorpay?.paymentLinkUrl && (
                           <span className="text-[10px] font-mono text-muted-foreground">

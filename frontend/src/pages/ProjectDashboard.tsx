@@ -19,13 +19,14 @@ import { SourcesView } from "../components/dashboard/SourcesView";
 import { ComparisonView } from "../components/dashboard/ComparisonView";
 import { ReportsView } from "../components/dashboard/ReportsView";
 import { AgentOrchestratorView } from "../components/dashboard/AgentOrchestratorView";
+import { renderPlatformIcon, platformLabel, getPlatformStyle } from "../components/common/PlatformIcon";
 import * as projectApi from "../lib/projectApi";
 import * as collectorApi from "../lib/collectorApi";
 import {
   MessageSquare, TrendingUp, Search, Globe, Users, Scale,
   Mail, FileText, BarChart3, Palette, MapPin, Play, Loader2,
-  User, LogOut, Wrench, Bot, Twitter, Youtube, Linkedin, Newspaper,
-  BookOpen, ExternalLink
+  User, LogOut, Wrench, Bot,
+  ExternalLink
 } from "lucide-react";
 
 type Project = projectApi.Project;
@@ -34,53 +35,49 @@ type SourceFilter = "all" | "social" | "news" | "blogs";
 type NavItem = "agent" | "mentions" | "summary" | "analysis" | "sources" | "influencers" | "comparison" | "email-reports" | "pdf-report" | "excel-export" | "infographic";
 type GraphTab = "mentions-reach" | "sentiment";
 
-function platformLabel(platform: string) {
-  switch (platform) {
-    case "twitter":
-      return "Twitter";
-    case "reddit":
-      return "Reddit";
-    case "youtube":
-      return "YouTube";
-    case "medium":
-      return "Medium";
-    case "linkedin":
-      return "LinkedIn";
-    case "tumblr":
-      return "Tumblr";
-    case "news":
-      return "News";
-    default:
-      return platform;
-  }
-}
-
-function renderPlatformIcon(platform: string, className = "h-3.5 w-3.5") {
-  switch (platform) {
-    case "twitter":
-      return <Twitter className={className} />;
-    case "reddit":
-      return <MessageSquare className={className} />;
-    case "youtube":
-      return <Youtube className={className} />;
-    case "medium":
-    case "tumblr":
-      return <BookOpen className={className} />;
-    case "linkedin":
-      return <Linkedin className={className} />;
-    case "news":
-      return <Newspaper className={className} />;
-    default:
-      return <Globe className={className} />;
-  }
-}
-
 function isPlatformIncluded(platform: string, filter: SourceFilter) {
   if (filter === "all") return true;
   if (filter === "news") return platform === "news";
   if (filter === "blogs") return platform === "medium" || platform === "tumblr";
   if (filter === "social") return platform === "twitter" || platform === "reddit" || platform === "youtube" || platform === "linkedin";
   return true;
+}
+
+/* ──────────────────── Custom Chart Tooltip ──────────────────── */
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload || !payload.length) return null;
+  const point = payload[0]?.payload;
+  const headerTime = point?.fullTimeLabel || point?.date || "Timeline Point";
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/95 backdrop-blur-xl p-3 shadow-2xl min-w-[190px] z-50">
+      <div className="mb-2 pb-2 border-b border-border/50">
+        <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+          Timeline Point
+        </span>
+        <span className="text-xs font-semibold text-foreground block mt-0.5">
+          {headerTime}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {payload.map((entry: any, i: number) => {
+          const color = entry.color || entry.stroke || entry.fill || "#8b5cf6";
+          return (
+            <div key={i} className="flex items-center justify-between gap-3 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground font-medium">
+                <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                <span>{entry.name}</span>
+              </span>
+              <span className="font-mono font-bold text-foreground">
+                {Number(entry.value ?? 0).toLocaleString()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function ProjectDashboard() {
@@ -189,82 +186,124 @@ export function ProjectDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserMenu]);
 
-  const mentionsReachData = useMemo(() => {
-    const ts = summary?.timeSeries ?? [];
-    return ts.map((p) => ({
-      date: p.date,
-      mentions: p.count,
-      reach: p.count * 120,
-    }));
-  }, [summary]);
-
-  // Sentiment chart from stored MongoDB data (group by hour/date, count by sentiment.label)
-  const sentimentData = useMemo(() => {
+  // Granular multi-point timeline calculation for both Mentions & Reach and Sentiment
+  const analyticsTimelineData = useMemo(() => {
     const list = summary?.mentions ?? [];
-    const withSentiment = list.filter(
-      (m) => (m.sentimentStatus === "completed" || m.sentiment?.label) && m.sentiment
-    );
-    if (withSentiment.length === 0) {
+    if (list.length === 0) {
+      const ts = summary?.timeSeries ?? [];
+      return ts.map((p) => {
+        const d = new Date(p.date);
+        const validDate = !isNaN(d.getTime());
+        const fullTimeLabel = validDate
+          ? d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
+          : p.date;
+        return {
+          date: p.date,
+          fullTimeLabel,
+          mentions: p.count,
+          reach: p.count * 120,
+          positive: 0,
+          neutral: p.count,
+          negative: 0,
+        };
+      });
+    }
+
+    const validDates = list
+      .map((m) => new Date(m.publishedAt || Date.now()))
+      .filter((d) => !isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (validDates.length === 0) {
       return [];
     }
 
-    // Determine if we should group by hour (for 24h window) or by day
-    const timestamps = withSentiment
-      .map((m) => (m.publishedAt ? new Date(m.publishedAt).getTime() : 0))
-      .filter((t) => t > 0);
-    const minTime = Math.min(...timestamps);
-    const maxTime = Math.max(...timestamps);
-    const isSingleDay = maxTime - minTime <= 36 * 60 * 60 * 1000;
+    const minTime = validDates[0].getTime();
+    const maxTime = validDates[validDates.length - 1].getTime();
+    const spanHours = Math.max(1, (maxTime - minTime) / (3600 * 1000));
 
-    const byBucket = new Map<
-      string,
-      { date: string; positive: number; neutral: number; negative: number }
-    >();
+    // Determine clean intervals based on the span:
+    // - <= 12 hours: 1-hour intervals (up to 12 points)
+    // - <= 36 hours: 2-hour intervals (up to 18 points)
+    // - <= 72 hours: 4-hour intervals (up to 18 points)
+    // - <= 168 hours (7 days): 8-hour intervals (up to 21 points)
+    // - > 7 days: 24-hour intervals (daily)
+    let intervalHours = 1;
+    if (spanHours <= 12) intervalHours = 1;
+    else if (spanHours <= 36) intervalHours = 2;
+    else if (spanHours <= 72) intervalHours = 4;
+    else if (spanHours <= 168) intervalHours = 8;
+    else intervalHours = 24;
 
-    for (const m of withSentiment) {
-      if (!m.publishedAt) continue;
-      const dObj = new Date(m.publishedAt);
-      if (isNaN(dObj.getTime())) continue;
+    const intervalMs = intervalHours * 3600 * 1000;
+    const startMs = Math.floor(minTime / intervalMs) * intervalMs;
+    const endMs = Math.ceil(maxTime / intervalMs) * intervalMs;
 
-      const bucketKey = isSingleDay
-        ? `${String(dObj.getHours()).padStart(2, "0")}:00`
-        : dObj.toISOString().slice(0, 10);
+    const isSameDay = new Date(startMs).toDateString() === new Date(endMs).toDateString();
 
-      const row = byBucket.get(bucketKey) || {
-        date: bucketKey,
+    const buckets: Array<{
+      date: string;
+      fullTimeLabel: string;
+      mentions: number;
+      reach: number;
+      positive: number;
+      neutral: number;
+      negative: number;
+    }> = [];
+
+    for (let t = startMs; t <= endMs; t += intervalMs) {
+      const d = new Date(t);
+      const shortTime = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      const dateLabel = isSameDay
+        ? shortTime
+        : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${shortTime}`;
+      
+      const fullTimeLabel = `${d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}`;
+
+      buckets.push({
+        date: dateLabel,
+        fullTimeLabel,
+        mentions: 0,
+        reach: 0,
         positive: 0,
         neutral: 0,
         negative: 0,
-      };
-
-      const label = (m.sentiment?.label || "neutral").toLowerCase();
-      if (label === "positive") row.positive += 1;
-      else if (label === "negative") row.negative += 1;
-      else row.neutral += 1;
-
-      byBucket.set(bucketKey, row);
+      });
     }
 
-    let result = Array.from(byBucket.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    for (const m of list) {
+      const d = new Date(m.publishedAt || Date.now());
+      if (isNaN(d.getTime())) continue;
+      const idx = Math.min(buckets.length - 1, Math.max(0, Math.floor((d.getTime() - startMs) / intervalMs)));
+      
+      buckets[idx].mentions += 1;
+      
+      const meta = m.metadata || {};
+      const reachVal = meta.views 
+        ? Number(meta.views) 
+        : (meta.likes ? Number(meta.likes) * 25 : 120);
+      buckets[idx].reach += reachVal;
 
-    // If only 1 bucket, pad with a starter point so AreaChart renders a visual gradient
-    if (result.length === 1) {
-      const single = result[0];
-      result = [
-        { date: "Start", positive: 0, neutral: 0, negative: 0 },
+      const label = (m.sentiment?.label || "").toLowerCase();
+      if (label === "positive") buckets[idx].positive += 1;
+      else if (label === "negative") buckets[idx].negative += 1;
+      else if (label === "neutral") buckets[idx].neutral += 1;
+    }
+
+    if (buckets.length === 1) {
+      const single = buckets[0];
+      return [
+        { ...single, date: "Start", fullTimeLabel: "Start", mentions: 0, reach: 0, positive: 0, neutral: 0, negative: 0 },
         single,
-        { date: "Current", positive: single.positive, neutral: single.neutral, negative: single.negative },
+        { ...single, date: "Current", fullTimeLabel: "Current", mentions: single.mentions, reach: single.reach, positive: single.positive, neutral: single.neutral, negative: single.negative },
       ];
     }
 
-    return result;
+    return buckets;
   }, [summary]);
 
-  const sentimentChartData = useMemo(() => {
-    return sentimentData;
-  }, [sentimentData]);
+  const mentionsReachData = useMemo(() => analyticsTimelineData, [analyticsTimelineData]);
+  const sentimentChartData = useMemo(() => analyticsTimelineData, [analyticsTimelineData]);
 
   const byPlatform = useMemo(() => {
     const pts = summary?.byPlatform ?? [];
@@ -622,14 +661,7 @@ export function ProjectDashboard() {
                                 axisLine={{ stroke: "hsl(var(--border))" }}
                                 tickFormatter={(v) => `${v}`}
                               />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "hsl(var(--card))",
-                                  border: "1px solid hsl(var(--border))",
-                                  borderRadius: "10px",
-                                }}
-                                labelStyle={{ color: "hsl(var(--foreground))" }}
-                              />
+                              <Tooltip content={<ChartTooltip />} />
                               <Area
                                 type="monotone"
                                 dataKey="mentions"
@@ -692,16 +724,7 @@ export function ProjectDashboard() {
                                 axisLine={{ stroke: "hsl(var(--border))" }}
                                 tickFormatter={(v) => `${v}`}
                               />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "hsl(var(--card))",
-                                  border: "1px solid hsl(var(--border))",
-                                  borderRadius: "8px",
-                                }}
-                                labelStyle={{ color: "hsl(var(--foreground))" }}
-                                formatter={(value: number) => [Number(value), ""]}
-                                labelFormatter={(label) => `Date: ${label}`}
-                              />
+                              <Tooltip content={<ChartTooltip />} />
                               <Legend
                                 wrapperStyle={{ paddingTop: 12 }}
                                 formatter={(value) => (
@@ -810,8 +833,8 @@ export function ProjectDashboard() {
                               >
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                   <span className="inline-flex items-center gap-2.5 text-sm">
-                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold text-primary">
-                                      {renderPlatformIcon(m.platform)}
+                                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md border shadow-sm ${getPlatformStyle(m.platform).containerBg}`}>
+                                      {renderPlatformIcon(m.platform, "h-3.5 w-3.5")}
                                     </span>
                                     <span className="font-semibold text-foreground">{platformLabel(m.platform)}</span>
                                     {m.sourceType === "rss" && (
@@ -907,23 +930,26 @@ export function ProjectDashboard() {
                     Platform Sources
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {["twitter", "reddit", "youtube", "linkedin", "news", "medium"].map((p) => (
-                      <div
-                        key={p}
-                        className="group rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-primary/40 p-4 transition duration-200 hover:shadow-neon"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold text-primary">
-                            {renderPlatformIcon(p, "h-4 w-4")}
-                          </span>
-                          <span className="min-w-0 truncate text-xs font-semibold text-foreground">{platformLabel(p)}</span>
+                    {["twitter", "reddit", "youtube", "linkedin", "news", "medium"].map((p) => {
+                      const style = getPlatformStyle(p);
+                      return (
+                        <div
+                          key={p}
+                          className="group rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-border p-4 transition duration-200 hover:shadow-md"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border shadow-sm ${style.containerBg}`}>
+                              {renderPlatformIcon(p, "h-4 w-4")}
+                            </span>
+                            <span className="min-w-0 truncate text-xs font-semibold text-foreground">{platformLabel(p)}</span>
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {byPlatform.get(p) ?? 0}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground font-medium">mentions</div>
                         </div>
-                        <div className="text-2xl font-bold text-foreground">
-                          {byPlatform.get(p) ?? 0}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground font-medium">mentions</div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
