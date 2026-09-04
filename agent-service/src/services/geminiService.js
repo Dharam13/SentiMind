@@ -42,16 +42,19 @@ function extractJsonFromText(rawText) {
  */
 async function generateJsonAnalysis(prompt, fallbackGenerator) {
   if (genAI && env.geminiApiKey) {
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      const result = await model.generateContent(prompt);
-      const text = result?.response?.text();
-      const parsed = extractJsonFromText(text);
-      if (parsed) {
-        return parsed;
+    const candidateModels = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash"];
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const text = result?.response?.text();
+        const parsed = extractJsonFromText(text);
+        if (parsed) {
+          return parsed;
+        }
+      } catch (err) {
+        logger.warn(MODULE_NAME, `Gemini model ${modelName} failed: ${err.message}. Trying next candidate.`);
       }
-    } catch (err) {
-      logger.warn(MODULE_NAME, `Gemini API call failed: ${err.message}. Using intelligent fallback.`);
     }
   }
 

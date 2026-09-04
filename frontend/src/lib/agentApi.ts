@@ -133,13 +133,14 @@ export interface AgentAction {
   _id: string;
   idempotencyKey: string;
   projectId: number;
-  campaignId?: string;
-  mentionId: string;
+  campaignId?: string | Campaign;
+  mentionId?: string | any;
   platform: string;
   author: string;
   mentionContent: string;
   sourceUrl?: string;
   sentimentLabel?: string;
+  sentimentConfidence?: number;
   intentClassification?: string;
   intentReasoning?: string;
   actionType: string;

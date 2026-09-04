@@ -28,7 +28,12 @@ router.get("/overview", async (req, res, next) => {
       Signal.countDocuments(filter),
       Campaign.countDocuments({ ...filter, status: "pending_approval" }),
       Campaign.countDocuments({ ...filter, status: { $in: ["approved", "executing", "active", "measured"] } }),
-      AgentAction.find(filter).sort({ createdAt: -1 }).limit(100).lean(),
+      AgentAction.find(filter)
+        .sort({ createdAt: -1 })
+        .populate("mentionId")
+        .populate("campaignId")
+        .limit(100)
+        .lean(),
       Campaign.find(filter).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
 
@@ -118,6 +123,8 @@ router.get("/actions", async (req, res, next) => {
 
     const actions = await AgentAction.find(filter)
       .sort({ createdAt: -1 })
+      .populate("mentionId")
+      .populate("campaignId")
       .limit(100)
       .lean();
 
@@ -144,7 +151,7 @@ router.post("/campaigns/:id/approve", async (req, res, next) => {
     await campaign.save();
 
     // Trigger Agent 4 execution immediately
-    const executedActions = await executeApprovedCampaigns();
+    const executedActions = await executeApprovedCampaigns(campaign.projectId);
 
     return res.status(200).json({
       success: true,

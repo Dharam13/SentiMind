@@ -15,10 +15,14 @@ const MODULE_NAME = "Agent:Payment";
  * Enforces policy gates, executes bounded Razorpay money actions with strict idempotency,
  * and recovers gracefully from transient API failures without duplicate transactions.
  */
-async function executeApprovedCampaigns() {
-  const approvedCampaigns = await Campaign.find({
+async function executeApprovedCampaigns(targetProjectId = null) {
+  const query = {
     status: { $in: ["approved", "executing"] },
-  }).limit(3);
+  };
+  if (targetProjectId) {
+    query.projectId = targetProjectId;
+  }
+  const approvedCampaigns = await Campaign.find(query).limit(5);
 
   const actionsExecuted = [];
 

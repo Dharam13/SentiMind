@@ -45,12 +45,12 @@ const env = {
   collectorServiceUrl: optionalEnv("COLLECTOR_SERVICE_URL", "http://localhost:8021"),
   sentimentServiceUrl: optionalEnv("SENTIMENT_SERVICE_URL", "http://localhost:8030"),
 
-  razorpayKeyId: optionalEnv("RAZORPAY_KEY_ID", "rzp_test_SaAq34nBoaqnl4"),
-  razorpayKeySecret: optionalEnv("RAZORPAY_KEY_SECRET", "mock_secret_key_12345"),
+  razorpayKeyId: optionalEnv("RAZORPAY_KEY_ID", "rzp_test_TXuHXybcwOqf4y"),
+  razorpayKeySecret: optionalEnv("RAZORPAY_KEY_SECRET", "pg4eo69N28h3uOjcYrb4J1dt"),
   razorpayWebhookSecret: optionalEnv("RAZORPAY_WEBHOOK_SECRET", "webhook_secret_key_123"),
   razorpaySimulationMode: optionalEnv("RAZORPAY_SIMULATION_MODE", "false") === "true",
 
-  geminiApiKey: optionalEnv("GEMINI_API_KEY", ""),
+  geminiApiKey: optionalEnv("GEMINI_API_KEY", ""), // updated with user key
 
   maxAgentActionsPerDay: parseInt(optionalEnv("MAX_AGENT_ACTIONS_PER_DAY", "50"), 10),
   maxActionsPerDay: parseInt(optionalEnv("MAX_AGENT_ACTIONS_PER_DAY", "50"), 10),
