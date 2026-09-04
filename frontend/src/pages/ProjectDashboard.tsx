@@ -24,7 +24,8 @@ import * as collectorApi from "../lib/collectorApi";
 import {
   MessageSquare, TrendingUp, Search, Globe, Users, Scale,
   Mail, FileText, BarChart3, Palette, MapPin, Play, Loader2,
-  User, LogOut, Wrench, Bot
+  User, LogOut, Wrench, Bot, Twitter, Youtube, Linkedin, Newspaper,
+  BookOpen, ExternalLink
 } from "lucide-react";
 
 type Project = projectApi.Project;
@@ -54,24 +55,23 @@ function platformLabel(platform: string) {
   }
 }
 
-function platformIcon(platform: string) {
+function renderPlatformIcon(platform: string, className = "h-3.5 w-3.5") {
   switch (platform) {
     case "twitter":
-      return "𝕏";
+      return <Twitter className={className} />;
     case "reddit":
-      return "r/";
+      return <MessageSquare className={className} />;
     case "youtube":
-      return "▶";
+      return <Youtube className={className} />;
     case "medium":
-      return "M";
-    case "linkedin":
-      return "in";
     case "tumblr":
-      return "t";
+      return <BookOpen className={className} />;
+    case "linkedin":
+      return <Linkedin className={className} />;
     case "news":
-      return "N";
+      return <Newspaper className={className} />;
     default:
-      return "•";
+      return <Globe className={className} />;
   }
 }
 
@@ -86,7 +86,7 @@ function isPlatformIncluded(platform: string, filter: SourceFilter) {
 export function ProjectDashboard() {
   const { id } = useParams();
   const projectId = useMemo(() => parseInt(String(id), 10), [id]);
-  const { user, accessToken, loading, logout, updateProfile } = useAuth();
+  const { user, accessToken, loading, logout, clearAuth, updateProfile } = useAuth();
   const navigate = useNavigate();
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -134,13 +134,21 @@ export function ProjectDashboard() {
         if (!cancelled) setProject(res.project);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load project");
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : "Failed to load project";
+          if (msg.includes("Invalid or expired token") || msg.includes("Session expired")) {
+            clearAuth();
+            navigate("/login", { replace: true });
+            return;
+          }
+          setError(msg);
+        }
       })
       .finally(() => setLoadingProject(false));
     return () => {
       cancelled = true;
     };
-  }, [accessToken, projectId]);
+  }, [accessToken, projectId, clearAuth, navigate]);
 
   useEffect(() => {
     if (!Number.isFinite(projectId)) return;
@@ -647,8 +655,8 @@ export function ProjectDashboard() {
                             </AreaChart>
                           ) : sentimentChartData.length === 0 ? (
                             <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background/40 p-6 text-center">
-                              <p className="text-sm font-medium text-gray-400">No sentiment data yet</p>
-                              <p className="mt-1 text-xs text-gray-400">
+                              <p className="text-sm font-medium text-muted-foreground">No sentiment data yet</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 Run collection, then wait for sentiment to be processed. The chart will show positive / neutral / negative counts by day.
                               </p>
                             </div>
@@ -697,7 +705,7 @@ export function ProjectDashboard() {
                               <Legend
                                 wrapperStyle={{ paddingTop: 12 }}
                                 formatter={(value) => (
-                                  <span className="text-sm text-gray-400">{value}</span>
+                                  <span className="text-sm text-muted-foreground font-medium">{value}</span>
                                 )}
                                 iconType="circle"
                                 iconSize={8}
@@ -802,8 +810,8 @@ export function ProjectDashboard() {
                               >
                                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                   <span className="inline-flex items-center gap-2.5 text-sm">
-                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold">
-                                      {platformIcon(m.platform)}
+                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold text-primary">
+                                      {renderPlatformIcon(m.platform)}
                                     </span>
                                     <span className="font-semibold text-foreground">{platformLabel(m.platform)}</span>
                                     {m.sourceType === "rss" && (
@@ -831,9 +839,9 @@ export function ProjectDashboard() {
                                         href={m.sourceUrl}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline transition"
                                       >
-                                        Open ↗
+                                        <ExternalLink className="h-3 w-3" /> Open
                                       </a>
                                     ) : null}
                                   </span>
@@ -905,8 +913,8 @@ export function ProjectDashboard() {
                         className="group rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-primary/40 p-4 transition duration-200 hover:shadow-neon"
                       >
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold">
-                            {platformIcon(p)}
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold text-primary">
+                            {renderPlatformIcon(p, "h-4 w-4")}
                           </span>
                           <span className="min-w-0 truncate text-xs font-semibold text-foreground">{platformLabel(p)}</span>
                         </div>

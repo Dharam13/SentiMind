@@ -61,6 +61,13 @@ async function request<T>(
   const res = await fetch(`${AUTH_BASE}/auth${path}`, { ...init, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 && accessToken) {
+      localStorage.removeItem("sentimind_refresh");
+      sessionStorage.removeItem("sentimind_access");
+      sessionStorage.removeItem("sentimind_user");
+      window.location.href = "/login";
+      throw new Error("Session expired. Redirecting to login...");
+    }
     const msg = data?.error || data?.details?.[0]?.message || "Request failed";
     throw new Error(msg);
   }

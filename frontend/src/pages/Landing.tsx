@@ -15,15 +15,20 @@ import {
   Sparkles,
   Layers,
   Activity,
+  Twitter,
+  MessageSquare,
+  Youtube,
+  Linkedin,
+  BookOpen,
 } from "lucide-react";
 
 const sources = [
-  { icon: "𝕏", label: "X / Twitter", color: "hover:border-sky-500/50" },
-  { icon: "r/", label: "Reddit", color: "hover:border-orange-500/50" },
-  { icon: <Newspaper className="h-3.5 w-3.5 text-blue-400" />, label: "Global News", color: "hover:border-blue-500/50" },
-  { icon: "▶", label: "YouTube", color: "hover:border-red-500/50" },
-  { icon: "in", label: "LinkedIn", color: "hover:border-blue-600/50" },
-  { icon: "M", label: "Medium", color: "hover:border-emerald-500/50" },
+  { icon: <Twitter className="h-4 w-4 text-sky-400" />, label: "X / Twitter", color: "hover:border-sky-500/50" },
+  { icon: <MessageSquare className="h-4 w-4 text-orange-400" />, label: "Reddit", color: "hover:border-orange-500/50" },
+  { icon: <Newspaper className="h-4 w-4 text-blue-400" />, label: "Global News", color: "hover:border-blue-500/50" },
+  { icon: <Youtube className="h-4 w-4 text-red-400" />, label: "YouTube", color: "hover:border-red-500/50" },
+  { icon: <Linkedin className="h-4 w-4 text-blue-500" />, label: "LinkedIn", color: "hover:border-blue-600/50" },
+  { icon: <BookOpen className="h-4 w-4 text-emerald-400" />, label: "Medium", color: "hover:border-emerald-500/50" },
 ];
 
 const stats = [
@@ -247,7 +252,7 @@ export function Landing() {
                   key={source.label}
                   className={`inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3.5 py-1.5 text-xs sm:text-sm font-medium text-foreground backdrop-blur-sm shadow-sm transition-all duration-200 ${source.color}`}
                 >
-                  <span className="font-bold text-xs">{source.icon}</span>
+                  <span className="flex items-center">{source.icon}</span>
                   {source.label}
                 </span>
               ))}

@@ -12,8 +12,12 @@ const MODULE_NAME = "Agent:RootCause";
  * Evaluates anomalous sentiment signals to extract the underlying cause,
  * intent breakdown, affected product, and response recommendations.
  */
-async function processPendingSignals() {
-  const pendingSignals = await Signal.find({ status: "detected" }).limit(5);
+async function processPendingSignals(targetProjectId = null) {
+  const query = { status: "detected" };
+  if (targetProjectId) {
+    query.projectId = targetProjectId;
+  }
+  const pendingSignals = await Signal.find(query).limit(5);
 
   const rootCausesCreated = [];
 

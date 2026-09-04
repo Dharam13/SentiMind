@@ -3,7 +3,8 @@ import * as collectorApi from "../lib/collectorApi";
 import {
   Users, BarChart3, Target, MessageSquare, SlidersHorizontal,
   Globe, Radio, Zap, ThumbsUp, ThumbsDown, Minus,
-  ChevronDown, ChevronRight, ExternalLink
+  ChevronDown, ChevronRight, ExternalLink,
+  Twitter, Youtube, Linkedin, Newspaper, BookOpen
 } from "lucide-react";
 
 type Platform = collectorApi.Platform;
@@ -57,22 +58,23 @@ function platformLabel(platform: string) {
   }
 }
 
-function platformIcon(platform: string) {
+function renderPlatformIcon(platform: string, className = "h-3.5 w-3.5") {
   switch (platform) {
     case "twitter":
-      return "𝕏";
+      return <Twitter className={className} />;
     case "reddit":
-      return "r/";
+      return <MessageSquare className={className} />;
     case "youtube":
-      return "▶";
+      return <Youtube className={className} />;
     case "medium":
-      return "M";
+    case "tumblr":
+      return <BookOpen className={className} />;
     case "linkedin":
-      return "in";
+      return <Linkedin className={className} />;
     case "news":
-      return "N";
+      return <Newspaper className={className} />;
     default:
-      return "\u2022";
+      return <Globe className={className} />;
   }
 }
 
@@ -377,8 +379,8 @@ export function InfluencersView({
                     {/* Left: Author info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold flex-shrink-0">
-                          {platformIcon(topPlatform?.platform || "twitter")}
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold flex-shrink-0 text-primary">
+                          {renderPlatformIcon(topPlatform?.platform || "twitter", "h-4 w-4")}
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
@@ -548,8 +550,8 @@ export function InfluencersView({
                             >
                               <div className="flex items-center justify-between">
                                 <span className="inline-flex items-center gap-2 text-sm">
-                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold">
-                                    {platformIcon(p.platform)}
+                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold text-primary">
+                                    {renderPlatformIcon(p.platform)}
                                   </span>
                                   <span className="font-medium">{platformLabel(p.platform)}</span>
                                 </span>
@@ -626,8 +628,8 @@ export function InfluencersView({
                               className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-card/60 border border-border/60 hover:border-primary/40 transition text-xs"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold flex-shrink-0">
-                                  {platformIcon(m.platform)}
+                                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold flex-shrink-0 text-primary">
+                                  {renderPlatformIcon(m.platform, "h-3 w-3")}
                                 </span>
                                 <span className="text-foreground truncate flex-1">
                                   {m.content || `Mention on ${platformLabel(m.platform)}`}

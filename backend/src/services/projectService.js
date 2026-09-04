@@ -12,7 +12,7 @@ async function listUserProjects(userId) {
 }
 
 async function createProjectForUser(userId, data) {
-  return prisma.project.create({
+  const project = await prisma.project.create({
     data: {
       userId,
       primaryKeyword: data.primaryKeyword,
@@ -21,6 +21,25 @@ async function createProjectForUser(userId, data) {
       status: data.status ?? "ACTIVE",
     },
   });
+
+  // Ensure any orphaned/stale test documents in MongoDB are cleared so project starts completely fresh
+  try {
+    const { Mention } = require("../models/Mention");
+    const { Signal } = require("../models/Signal");
+    const { Campaign } = require("../models/Campaign");
+    const { AgentAction } = require("../models/AgentAction");
+
+    await Promise.allSettled([
+      Mention.deleteMany({ projectId: project.id }),
+      Signal.deleteMany({ projectId: project.id }),
+      Campaign.deleteMany({ projectId: project.id }),
+      AgentAction.deleteMany({ projectId: project.id }),
+    ]);
+  } catch (_e) {
+    // Best-effort MongoDB cleanup
+  }
+
+  return project;
 }
 
 async function getUserProjectById(userId, projectId) {
@@ -52,10 +71,40 @@ async function updateUserProject(userId, projectId, updates) {
   });
 }
 
+async function deleteUserProject(userId, projectId) {
+  const project = await getUserProjectById(userId, projectId);
+  if (!project) {
+    return null;
+  }
+  const deleted = await prisma.project.delete({
+    where: { id: projectId },
+  });
+
+  // Clean up associated mentions, signals, campaigns, and actions in MongoDB Atlas
+  try {
+    const { Mention } = require("../models/Mention");
+    const { Signal } = require("../models/Signal");
+    const { Campaign } = require("../models/Campaign");
+    const { AgentAction } = require("../models/AgentAction");
+
+    await Promise.allSettled([
+      Mention.deleteMany({ projectId }),
+      Signal.deleteMany({ projectId }),
+      Campaign.deleteMany({ projectId }),
+      AgentAction.deleteMany({ projectId }),
+    ]);
+  } catch (_e) {
+    // MongoDB cleanup is best effort
+  }
+
+  return deleted;
+}
+
 module.exports = {
   listUserProjects,
   createProjectForUser,
   getUserProjectById,
   updateUserProject,
+  deleteUserProject,
 };
 

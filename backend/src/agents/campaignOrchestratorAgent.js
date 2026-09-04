@@ -14,8 +14,12 @@ const MODULE_NAME = "Agent:Campaign";
  * Agent 3: Campaign Orchestrator Agent
  * Converts root-cause diagnoses into structured, bounded marketing & commerce campaigns.
  */
-async function processAnalyzedRootCauses() {
-  const pendingRootCauses = await RootCause.find({ status: "analyzed" }).limit(5);
+async function processAnalyzedRootCauses(targetProjectId = null) {
+  const query = { status: "analyzed" };
+  if (targetProjectId) {
+    query.projectId = targetProjectId;
+  }
+  const pendingRootCauses = await RootCause.find(query).limit(5);
 
   const campaignsCreated = [];
 

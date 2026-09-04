@@ -208,7 +208,7 @@ export function DeepAnalysisView({ summary, loading }: Props) {
                   ) : a.avgScore < -0.05 ? (
                     <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-red-500">{(a.avgScore * 100).toFixed(0)}%</span></>
                   ) : (
-                    <span className="text-gray-400">Neutral</span>
+                    <span className="text-muted-foreground">Neutral</span>
                   )}
                 </div>
               </div>

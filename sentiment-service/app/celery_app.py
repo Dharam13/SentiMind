@@ -17,6 +17,8 @@ celery_app = Celery(
     include=["app.tasks"],
 )
 
+from kombu import Queue
+
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -25,6 +27,11 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    task_default_queue="sentiment_tasks",
+    task_queues=[
+        Queue("sentiment_tasks", routing_key="sentiment_tasks"),
+        Queue("celery", routing_key="celery"),
+    ],
     task_routes={
         "tasks.analyze_single_mention": {"queue": "sentiment_tasks"},
         "tasks.check_spike_callback": {"queue": "sentiment_tasks"},

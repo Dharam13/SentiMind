@@ -39,7 +39,46 @@ async function request<T>(
   };
   const res = await fetch(`${AUTH_BASE}/projects${path}`, { ...init, headers });
   const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
+    if (res.status === 401) {
+      // 1. Try to silently refresh with refreshToken
+      const storedRefresh = localStorage.getItem("sentimind_refresh");
+      if (storedRefresh) {
+        try {
+          const refreshRes = await fetch(`${AUTH_BASE}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: storedRefresh }),
+          });
+          const refreshData = await refreshRes.json();
+          if (refreshRes.ok && refreshData.accessToken) {
+            sessionStorage.setItem("sentimind_access", refreshData.accessToken);
+            sessionStorage.setItem("sentimind_user", JSON.stringify(refreshData.user));
+            localStorage.setItem("sentimind_refresh", refreshData.refreshToken);
+
+            // Retry original request with fresh token
+            const retryHeaders = {
+              ...headers,
+              Authorization: `Bearer ${refreshData.accessToken}`,
+            };
+            const retryRes = await fetch(`${AUTH_BASE}/projects${path}`, { ...init, headers: retryHeaders });
+            const retryData = await retryRes.json().catch(() => ({}));
+            if (retryRes.ok) return retryData as T;
+          }
+        } catch {
+          /* refresh failed */
+        }
+      }
+
+      // 2. Refresh was impossible or expired: clear storage & redirect to login immediately
+      localStorage.removeItem("sentimind_refresh");
+      sessionStorage.removeItem("sentimind_access");
+      sessionStorage.removeItem("sentimind_user");
+      window.location.href = "/login";
+      throw new Error("Session expired. Redirecting to login...");
+    }
+
     const msg = (data as any)?.error || "Request failed";
     throw new Error(msg);
   }
@@ -81,6 +120,16 @@ export async function updateProject(
 export async function getProject(accessToken: string, id: number): Promise<{ project: Project }> {
   return request<{ project: Project }>(`/${id}`, {
     method: "GET",
+    accessToken,
+  });
+}
+
+export async function deleteProject(
+  accessToken: string,
+  id: number
+): Promise<{ success: boolean; message: string; project: Project }> {
+  return request<{ success: boolean; message: string; project: Project }>(`/${id}`, {
+    method: "DELETE",
     accessToken,
   });
 }

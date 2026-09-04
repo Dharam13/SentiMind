@@ -9,6 +9,7 @@ const { Mention } = require("../models/Mention");
 const { analyzeSentiment } = require("./sentimentClient");
 const { dispatchBatchToCelery } = require("./rabbitmqClient");
 const { env } = require("../config/env");
+const axios = require("axios");
 
 let intervalId = null;
 
@@ -161,6 +162,20 @@ async function processPendingBatch() {
         failed++;
       }
     }
+  }
+
+  if (processed > 0) {
+    try {
+      const pids = [...new Set(pending.map((p) => p.projectId).filter(Boolean))];
+      const backendUrl = env.backendApiUrl || "http://localhost:8000";
+      for (const pid of pids) {
+        axios
+          .post(`${backendUrl}/api/agent/trigger-pipeline`, { projectId: pid })
+          .catch((e) => {
+            console.warn(`[SentimentProcessor] trigger-pipeline notify for Project ${pid}: ${e.message}`);
+          });
+      }
+    } catch (_) {}
   }
 
   return { processed, failed };

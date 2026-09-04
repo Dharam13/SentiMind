@@ -161,16 +161,10 @@ def check_spike_callback(results: list, project_id: int):
         total_baseline = db.mentions.count_documents(baseline_query)
 
         if total_baseline < 5:
-            logger.info(f"[Task:SpikeBarrier] Insufficient baseline mentions ({total_baseline}) for Project {project_id}. Skipping spike check.")
-            return {
-                "status": "normal",
-                "reason": "insufficient_baseline",
-                "completed": len(completed),
-                "failed": len(failed),
-            }
-
-        neg_baseline = db.mentions.count_documents({**baseline_query, "sentiment.label": "negative"})
-        baseline_neg_pct = (neg_baseline / total_baseline) * 100
+            baseline_neg_pct = 15.0
+        else:
+            neg_baseline = db.mentions.count_documents({**baseline_query, "sentiment.label": "negative"})
+            baseline_neg_pct = (neg_baseline / total_baseline) * 100
 
         # Current window: last 6 hours
         current_query = {
@@ -193,10 +187,10 @@ def check_spike_callback(results: list, project_id: int):
             f"Current 6h Neg: {current_neg_pct:.1f}%, Deviation: {deviation:.2f}x"
         )
 
-        is_spike = deviation >= 1.5 and current_neg_pct >= 30
+        is_spike = (deviation >= 1.4 and current_neg_pct >= 25) or (total_current >= 5)
 
         if not is_spike:
-            logger.info(f"[Task:SpikeBarrier] Sentiment within normal bounds ({deviation:.2f}x). 0 Gemini calls.")
+            logger.info(f"[Task:SpikeBarrier] Sentiment within normal bounds ({deviation:.2f}x).")
             return {
                 "status": "normal",
                 "deviation": round(deviation, 2),
@@ -204,8 +198,8 @@ def check_spike_callback(results: list, project_id: int):
                 "failed": len(failed),
             }
 
-        # 2. SPIKE DETECTED -> Trigger Agent Loop on Backend Server
-        logger.info(f"[Task:SpikeBarrier] ⚠️ SPIKE DETECTED ({deviation:.2f}x)! Triggering Agentic Workflow on Backend.")
+        # 2. SPIKE DETECTED / BATCH COMPLETE -> Trigger Agent Loop on Backend Server
+        logger.info(f"[Task:SpikeBarrier] ⚠️ SPIKE/SURGE DETECTED ({deviation:.2f}x)! Triggering Agentic Workflow on Backend.")
         try:
             resp = requests.post(
                 f"{BACKEND_URL}/api/agent/trigger-pipeline",
@@ -214,7 +208,7 @@ def check_spike_callback(results: list, project_id: int):
             )
             logger.info(f"[Task:SpikeBarrier] Backend notified: status {resp.status_code}")
         except Exception as net_err:
-            logger.warn(f"[Task:SpikeBarrier] Could not notify backend immediately: {net_err}")
+            logger.warning(f"[Task:SpikeBarrier] Could not notify backend immediately: {net_err}")
 
         return {
             "status": "spike_detected",

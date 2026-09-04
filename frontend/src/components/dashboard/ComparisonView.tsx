@@ -155,7 +155,7 @@ export function ComparisonView({ summary, loading }: Props) {
                   <td className="py-3 text-center text-red-500 font-semibold">{d.negativeRate}%</td>
                   <td className="py-3 text-center">
                     <span className="inline-flex items-center gap-1 font-bold">
-                      {d.avgScore > 0.05 ? <><ArrowUpRight className="h-3 w-3 text-emerald-500" /><span className="text-emerald-500">{(d.avgScore * 100).toFixed(0)}</span></> : d.avgScore < -0.05 ? <><ArrowDownRight className="h-3 w-3 text-red-500" /><span className="text-red-500">{(d.avgScore * 100).toFixed(0)}</span></> : <span className="text-gray-400">0</span>}
+                      {d.avgScore > 0.05 ? <><ArrowUpRight className="h-3 w-3 text-emerald-500" /><span className="text-emerald-500">{(d.avgScore * 100).toFixed(0)}</span></> : d.avgScore < -0.05 ? <><ArrowDownRight className="h-3 w-3 text-red-500" /><span className="text-red-500">{(d.avgScore * 100).toFixed(0)}</span></> : <span className="text-muted-foreground">0</span>}
                     </span>
                   </td>
                 </tr>

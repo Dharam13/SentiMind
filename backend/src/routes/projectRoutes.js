@@ -27,5 +27,9 @@ router.patch("/:id", (req, res, next) => {
   projectController.updateProject(req, res).catch(next);
 });
 
+router.delete("/:id", (req, res, next) => {
+  projectController.deleteProject(req, res).catch(next);
+});
+
 module.exports = router;
 

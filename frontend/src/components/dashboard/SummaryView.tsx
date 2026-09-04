@@ -104,7 +104,7 @@ export function SummaryView({ summary, loading, keyword }: Props) {
           { label: "Total Mentions", value: summary.totalMentions, icon: Hash, color: "text-primary" },
           { label: "Positive", value: `${posPct}%`, icon: ThumbsUp, color: "text-emerald-500" },
           { label: "Negative", value: `${negPct}%`, icon: ThumbsDown, color: "text-red-500" },
-          { label: "Neutral", value: `${neuPct}%`, icon: Minus, color: "text-gray-400" },
+          { label: "Neutral", value: `${neuPct}%`, icon: Minus, color: "text-muted-foreground" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-border/60 bg-card/80 backdrop-blur-xl p-4 hover:shadow-neon transition duration-200">
             <div className="flex items-center gap-2 mb-2">
@@ -151,7 +151,7 @@ export function SummaryView({ summary, loading, keyword }: Props) {
           <div className="space-y-3 text-sm text-foreground leading-relaxed">
             <p>
               Based on <strong>{summary.totalMentions}</strong> collected mentions for "<strong>{keyword ?? "this project"}</strong>",
-              the overall sentiment is <span className={`font-bold ${overallSentiment === "Positive" ? "text-emerald-500" : overallSentiment === "Negative" ? "text-red-500" : "text-gray-400"}`}>{overallSentiment}</span>.
+              the overall sentiment is <span className={`font-bold ${overallSentiment === "Positive" ? "text-emerald-500" : overallSentiment === "Negative" ? "text-red-500" : "text-muted-foreground"}`}>{overallSentiment}</span>.
             </p>
             <p>
               <strong>{posPct}%</strong> of mentions are positive, <strong>{negPct}%</strong> negative, and <strong>{neuPct}%</strong> neutral. The average confidence score is <strong>{avgConf}%</strong>.

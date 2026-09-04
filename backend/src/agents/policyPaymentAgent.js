@@ -57,12 +57,14 @@ async function executeApprovedCampaigns() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayActionsCount = await AgentAction.countDocuments({
+        projectId: campaign.projectId,
         createdAt: { $gte: todayStart },
         status: { $nin: ["blocked", "failed"] },
       });
 
-      if (todayActionsCount >= env.maxActionsPerDay) {
-        logger.warn(MODULE_NAME, `Daily action limit reached (${todayActionsCount}/${env.maxActionsPerDay}). Gating execution.`);
+      const maxDaily = env.maxActionsPerDay || env.maxAgentActionsPerDay || 50;
+      if (todayActionsCount >= maxDaily) {
+        logger.warn(MODULE_NAME, `Daily action limit reached (${todayActionsCount}/${maxDaily}). Gating execution.`);
         continue;
       }
 
@@ -92,7 +94,7 @@ async function executeApprovedCampaigns() {
         const safetyChecks = {
           isActionablePlatform: ["twitter", "reddit", "youtube"].includes(mention.platform),
           isDuplicateUser: credibility.isFlaggedFarmer,
-          withinDailyBudget: todayActionsCount < env.maxActionsPerDay,
+          withinDailyBudget: todayActionsCount < maxDaily,
           withinDiscountCap: (matchedPlan?.discountPercent || 0) <= env.maxDiscountPercent,
           passedCredibilityGate: credibility.isCredible,
           requiresHumanApproval: false,

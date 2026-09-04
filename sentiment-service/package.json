@@ -5,7 +5,7 @@
   "description": "Hybrid VADER + DistilBERT sentiment analysis (powered by uv)",
   "scripts": {
     "dev": "uv run python run.py",
-    "celery": "uv run celery -A app.celery_app worker --loglevel=info -P solo",
+    "celery": "uv run celery -A app.celery_app worker --loglevel=info -P solo -Q sentiment_tasks,celery",
     "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8030",
     "sync": "uv sync",
     "install": "uv pip install -r requirements.txt"

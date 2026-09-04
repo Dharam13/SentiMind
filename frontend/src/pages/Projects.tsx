@@ -4,7 +4,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../contexts/AuthContext";
 import * as collectorApi from "../lib/collectorApi";
 import * as projectApi from "../lib/projectApi";
-import { BarChart3, Rocket, MessageSquare, Sparkles, User, LogOut, Plus } from "lucide-react";
+import { BarChart3, Rocket, MessageSquare, Sparkles, User, LogOut, Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
 
 type Project = projectApi.Project;
 
@@ -23,7 +23,7 @@ function formatNumber(n: number) {
 }
 
 export function Projects() {
-  const { user, accessToken, loading, logout, updateProfile } = useAuth();
+  const { user, accessToken, loading, logout, clearAuth, updateProfile } = useAuth();
   const navigate = useNavigate();
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +50,7 @@ export function Projects() {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [runningProjectId, setRunningProjectId] = useState<number | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -67,10 +68,16 @@ export function Projects() {
         setProjects(res.projects);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load projects");
+        const msg = err instanceof Error ? err.message : "Failed to load projects";
+        if (msg.includes("Invalid or expired token") || msg.includes("Session expired")) {
+          clearAuth();
+          navigate("/login", { replace: true });
+          return;
+        }
+        setError(msg);
       })
       .finally(() => setLoadingProjects(false));
-  }, [user, accessToken]);
+  }, [user, accessToken, clearAuth, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -176,6 +183,25 @@ export function Projects() {
       setProjects((prev) => prev.map((p) => (p.id === res.project.id ? res.project : p)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update project");
+    }
+  }
+
+  async function handleDeleteProject(project: Project) {
+    if (!accessToken) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete "${project.primaryKeyword}"? This will delete all collected mentions, signals, campaigns, and metrics for this project.`
+    );
+    if (!confirmDelete) return;
+
+    setDeletingProjectId(project.id);
+    setError(null);
+    try {
+      await projectApi.deleteProject(accessToken, project.id);
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete project");
+    } finally {
+      setDeletingProjectId(null);
     }
   }
 
@@ -426,12 +452,36 @@ export function Projects() {
                           {project.domain}
                         </p>
                       </div>
-                      <div className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold whitespace-nowrap ${
-                        project.status === "ACTIVE"
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-muted text-muted-foreground"
-                      }`}>
-                        {project.status === "ACTIVE" ? "● Active" : "○ Inactive"}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap ${
+                          project.status === "ACTIVE"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                            : "bg-muted text-muted-foreground border border-border"
+                        }`}>
+                          {project.status === "ACTIVE" ? (
+                            <>
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                              Inactive
+                            </>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteProject(project);
+                          }}
+                          disabled={deletingProjectId === project.id}
+                          title="Permanently delete project"
+                          className="rounded-lg p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
 
@@ -483,17 +533,28 @@ export function Projects() {
                       >
                         {runningProjectId === project.id ? "Running…" : "Run"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleToggleStatus(project)}
-                        className={`rounded-lg font-semibold py-2 px-3 text-sm transition duration-200 border ${
-                          project.status === "ACTIVE"
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-500/20"
-                            : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30 dark:hover:bg-emerald-500/20"
-                        }`}
-                      >
-                        {project.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                      </button>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void handleToggleStatus(project)}
+                          className={`flex-1 rounded-lg font-semibold py-2 px-2 text-xs sm:text-sm transition duration-200 border ${
+                            project.status === "ACTIVE"
+                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-500/20"
+                              : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30 dark:hover:bg-emerald-500/20"
+                          }`}
+                        >
+                          {project.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteProject(project)}
+                          disabled={deletingProjectId === project.id}
+                          title="Permanently delete project"
+                          className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-red-500 hover:bg-red-500/20 transition duration-200 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

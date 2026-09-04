@@ -53,6 +53,7 @@ const env = {
   geminiApiKey: optionalEnv("GEMINI_API_KEY", ""),
 
   maxAgentActionsPerDay: parseInt(optionalEnv("MAX_AGENT_ACTIONS_PER_DAY", "50"), 10),
+  maxActionsPerDay: parseInt(optionalEnv("MAX_AGENT_ACTIONS_PER_DAY", "50"), 10),
   maxDiscountPercent: parseInt(optionalEnv("MAX_DISCOUNT_PERCENT", "25"), 10),
   maxCampaignBudget: parseInt(optionalEnv("MAX_CAMPAIGN_BUDGET", "5000000"), 10),
   requireApprovalAboveAmount: parseInt(optionalEnv("REQUIRE_APPROVAL_ABOVE_AMOUNT", "100000"), 10),
@@ -62,6 +63,9 @@ const env = {
   measurementDelayHours: parseInt(optionalEnv("MEASUREMENT_DELAY_HOURS", "1"), 10),
   retryIntervalMs: parseInt(optionalEnv("RETRY_INTERVAL_MS", "60000"), 10),
   spikeDeviationThreshold: parseFloat(optionalEnv("SPIKE_DEVIATION_THRESHOLD", "1.5")),
+  spikeMinMentions: parseInt(optionalEnv("SPIKE_MIN_MENTIONS", "2"), 10),
+  baselineHours: parseInt(optionalEnv("BASELINE_HOURS", "168"), 10),
+  windowHours: parseInt(optionalEnv("WINDOW_HOURS", "6"), 10),
 };
 
 module.exports = { env };

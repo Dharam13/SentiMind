@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { Globe, ExternalLink } from "lucide-react";
+import { Globe, ExternalLink, Twitter, MessageSquare, Youtube, BookOpen, Linkedin, Newspaper } from "lucide-react";
 import type { ProjectSummaryResponse } from "../../lib/collectorApi";
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -17,9 +17,16 @@ function platformLabel(p: string) {
   return map[p] ?? p;
 }
 
-function platformIcon(p: string) {
-  const map: Record<string, string> = { twitter: "𝕏", reddit: "r/", youtube: "▶", medium: "M", linkedin: "in", tumblr: "t", news: "N" };
-  return map[p] ?? "•";
+function renderPlatformIcon(p: string, className = "h-5 w-5") {
+  switch (p) {
+    case "twitter": return <Twitter className={className} />;
+    case "reddit": return <MessageSquare className={className} />;
+    case "youtube": return <Youtube className={className} />;
+    case "medium": return <BookOpen className={className} />;
+    case "linkedin": return <Linkedin className={className} />;
+    case "news": return <Newspaper className={className} />;
+    default: return <Globe className={className} />;
+  }
 }
 
 interface Props {
@@ -56,7 +63,7 @@ export function SourcesView({ summary, loading }: Props) {
     }
 
     return Array.from(map.entries())
-      .map(([platform, data]) => ({ platform, label: platformLabel(platform), icon: platformIcon(platform), color: PLATFORM_COLORS[platform] ?? "#8b5cf6", ...data }))
+      .map(([platform, data]) => ({ platform, label: platformLabel(platform), color: PLATFORM_COLORS[platform] ?? "#8b5cf6", ...data }))
       .sort((a, b) => b.count - a.count);
   }, [mentions]);
 
@@ -123,16 +130,18 @@ export function SourcesView({ summary, loading }: Props) {
           <div key={p.platform} className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl p-6 shadow-neon hover:shadow-neon-lg transition duration-200">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-white" style={{ backgroundColor: p.color }}>{p.icon}</span>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundColor: p.color }}>
+                  {renderPlatformIcon(p.platform)}
+                </span>
                 <div>
                   <h4 className="text-base font-bold text-foreground">{p.label}</h4>
                   <p className="text-xs text-muted-foreground">{p.count} mention{p.count !== 1 ? "s" : ""} collected</p>
                 </div>
               </div>
               <div className="flex gap-3 text-xs font-semibold">
-                <span className="rounded-full bg-emerald-500/20 text-emerald-500 px-3 py-1">{p.positive} positive</span>
-                <span className="rounded-full bg-red-500/20 text-red-500 px-3 py-1">{p.negative} negative</span>
-                <span className="rounded-full bg-gray-500/20 text-gray-400 px-3 py-1">{p.neutral} neutral</span>
+                <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-3 py-1 border border-emerald-500/20">{p.positive} positive</span>
+                <span className="rounded-full bg-red-500/15 text-red-600 dark:text-red-400 px-3 py-1 border border-red-500/20">{p.negative} negative</span>
+                <span className="rounded-full bg-slate-500/15 text-slate-700 dark:text-zinc-300 px-3 py-1 border border-slate-500/20">{p.neutral} neutral</span>
               </div>
             </div>
 
