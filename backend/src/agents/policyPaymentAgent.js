@@ -43,11 +43,13 @@ async function executeApprovedCampaigns(targetProjectId = null) {
         const signal = await Signal.findById(campaign.signalId);
         if (signal && signal.triggeringMentionIds?.length) {
           const rawMentions = await Mention.find({ _id: { $in: signal.triggeringMentionIds } }).lean();
-          // Prioritize actionable conversational platforms (twitter, reddit, youtube) first, then take top 10
+          // Prioritize actionable conversational platforms: Twitter first, then Reddit, then YouTube
           rawMentions.sort((a, b) => {
-            const aAct = ["twitter", "reddit", "youtube"].includes(a.platform) ? 1 : 0;
-            const bAct = ["twitter", "reddit", "youtube"].includes(b.platform) ? 1 : 0;
-            return bAct - aAct;
+            const order = { twitter: 1, reddit: 2, youtube: 3 };
+            const aO = order[a.platform] || 10;
+            const bO = order[b.platform] || 10;
+            if (aO !== bO) return aO - bO;
+            return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
           });
           mentions = rawMentions.slice(0, 10);
         }
