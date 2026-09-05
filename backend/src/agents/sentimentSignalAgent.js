@@ -2,16 +2,27 @@ const { Mention } = require("../models/Mention");
 const { Signal } = require("../models/Signal");
 const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+const { langsmith } = require("../services/langsmithService");
 
 /**
  * Agent 1: Sentiment & Signal Agent
  * Detects sentiment anomalies, abnormal negative/positive spikes, and viral momentum.
  */
-async function runSentimentSignalCheck(targetProjectId, force = false) {
-  const query = targetProjectId ? { projectId: targetProjectId } : {};
-  const projectIds = targetProjectId ? [targetProjectId] : await Mention.distinct("projectId", query);
+async function runSentimentSignalCheck(targetProjectId, force = false, parentRunId = null) {
+  return await langsmith.withSpan(
+    {
+      name: "Agent1_SignalDetector",
+      runType: "chain",
+      inputs: { targetProjectId, force },
+      parentRunId,
+      metadata: { agent: "sentimentSignalAgent", version: "2.0" },
+      tags: ["agent1", "signal-detector"],
+    },
+    async (spanId) => {
+      const query = targetProjectId ? { projectId: targetProjectId } : {};
+      const projectIds = targetProjectId ? [targetProjectId] : await Mention.distinct("projectId", query);
 
-  const signalsGenerated = [];
+      const signalsGenerated = [];
 
   for (const pid of projectIds) {
     try {
@@ -175,6 +186,8 @@ async function runSentimentSignalCheck(targetProjectId, force = false) {
   }
 
   return signalsGenerated;
+}
+);
 }
 
 module.exports = {

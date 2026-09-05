@@ -139,6 +139,7 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
   const [showSimMenu, setShowSimMenu] = useState(false);
   const [selectedAction, setSelectedAction] = useState<agentApi.AgentAction | null>(null);
   const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "approved" | "blocked">("all");
+  const [observability, setObservability] = useState<agentApi.ObservabilityStatus | null>(null);
 
   const sortedActions = useMemo(() => {
     const priority: Record<string, number> = {
@@ -181,17 +182,21 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [overviewRes, signalsRes, campaignsRes, actionsRes] = await Promise.all([
+      const [overviewRes, signalsRes, campaignsRes, actionsRes, obsRes] = await Promise.all([
         agentApi.getAgentOverview(projectId),
         agentApi.getAgentSignals(projectId),
         agentApi.getAgentCampaigns(projectId),
         agentApi.getAgentActions(projectId),
+        agentApi.getObservabilityStatus().catch(() => null),
       ]);
 
       setOverview(overviewRes);
       setSignals(signalsRes.signals || []);
       setCampaigns(campaignsRes.campaigns || []);
       setActions(actionsRes.actions || []);
+      if (obsRes?.observability) {
+        setObservability(obsRes.observability);
+      }
     } catch (err: any) {
       console.error("Failed to load agent orchestrator data:", err);
       setMessage({ type: "error", text: err.message || "Failed to load agent data" });
@@ -237,9 +242,10 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
       setActionLoading(true);
       setShowSimMenu(false);
       const res = await agentApi.triggerTestSpike(projectId, spikeType, keyword);
+      const traceNotice = res.traceId ? ` · LangSmith Trace ${res.traceId.slice(0, 8)} recorded` : "";
       setMessage({
         type: "success",
-        text: `Simulation complete — ${res.stageOutputs?.agent1_signalsDetected || 0} signals, ${res.stageOutputs?.agent3_campaignsPlanned || 0} campaigns created`,
+        text: `Simulation complete — ${res.stageOutputs?.agent1_signalsDetected || 0} signals, ${res.stageOutputs?.agent3_campaignsPlanned || 0} campaigns, ${res.stageOutputs?.agent4_actionsExecuted || 0} actions${traceNotice}`,
       });
       await fetchData();
     } catch (err: any) {
@@ -304,6 +310,20 @@ export function AgentOrchestratorView({ projectId, keyword }: Props) {
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Active
                 </span>
+                {observability?.enabled && (
+                  <a
+                    href={observability.projectUrl || observability.dashboardUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 transition-all shadow-sm group"
+                    title={`Observability active on project: ${observability.project}`}
+                  >
+                    <Sparkles className="h-3 w-3 text-indigo-500" />
+                    <span>LangSmith Tracing</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <ExternalLink className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                )}
               </h2>
               <p className="text-sm text-muted-foreground mt-0.5 font-medium">
                 Autonomous sentiment monitoring, campaign planning & response execution

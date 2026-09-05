@@ -4,6 +4,7 @@ const { Mention } = require("../models/Mention");
 const { generateJsonAnalysis } = require("../services/geminiService");
 const { buildRootCausePrompt } = require("../constants/prompts");
 const { logger } = require("../utils/logger");
+const { langsmith } = require("../services/langsmithService");
 
 const MODULE_NAME = "Agent:RootCause";
 
@@ -12,14 +13,24 @@ const MODULE_NAME = "Agent:RootCause";
  * Evaluates anomalous sentiment signals to extract the underlying cause,
  * intent breakdown, affected product, and response recommendations.
  */
-async function processPendingSignals(targetProjectId = null) {
-  const query = { status: "detected" };
-  if (targetProjectId) {
-    query.projectId = targetProjectId;
-  }
-  const pendingSignals = await Signal.find(query).limit(5);
+async function processPendingSignals(targetProjectId = null, parentRunId = null) {
+  return await langsmith.withSpan(
+    {
+      name: "Agent2_RootCauseDiagnostician",
+      runType: "chain",
+      inputs: { targetProjectId },
+      parentRunId,
+      metadata: { agent: "intentRootCauseAgent", version: "2.0" },
+      tags: ["agent2", "root-cause"],
+    },
+    async (spanId) => {
+      const query = { status: "detected" };
+      if (targetProjectId) {
+        query.projectId = targetProjectId;
+      }
+      const pendingSignals = await Signal.find(query).limit(5);
 
-  const rootCausesCreated = [];
+      const rootCausesCreated = [];
 
   for (const signal of pendingSignals) {
     try {
@@ -84,7 +95,15 @@ async function processPendingSignals(targetProjectId = null) {
         };
       };
 
-      const diagnosis = await generateJsonAnalysis(prompt, fallbackGenerator);
+      const diagnosis = await generateJsonAnalysis(prompt, fallbackGenerator, {
+        parentRunId: spanId,
+        runName: "Gemini_RootCause_Inference",
+        metadata: {
+          signalId: String(signal._id),
+          severity: signal.severity,
+          projectId: signal.projectId,
+        },
+      });
       const brandKeyword = mentions.find((m) => m.keyword)?.keyword || (signal.projectId === 10 ? "Amul" : "Brand");
 
       const rootCause = await RootCause.create({
@@ -121,7 +140,9 @@ async function processPendingSignals(targetProjectId = null) {
     }
   }
 
-  return rootCausesCreated;
+      return rootCausesCreated;
+    }
+  );
 }
 
 module.exports = {

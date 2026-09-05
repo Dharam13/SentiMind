@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+const { langsmith } = require("./langsmithService");
 
 const MODULE_NAME = "GeminiService";
 
@@ -38,9 +39,31 @@ function extractJsonFromText(rawText) {
 }
 
 /**
- * Invoke Gemini with prompt, or return intelligent deterministic fallback if API key is not configured
+ * Invoke Gemini with prompt, or return intelligent deterministic fallback if API key is not configured.
+ * Fully traced in LangSmith with prompt, outputs, latency, and model metadata.
  */
-async function generateJsonAnalysis(prompt, fallbackGenerator) {
+async function generateJsonAnalysis(prompt, fallbackGenerator, traceOptions = {}) {
+  const {
+    parentRunId = null,
+    runName = "Gemini_Analysis",
+    metadata = {},
+    tags = ["gemini", "llm"],
+  } = traceOptions;
+
+  const llmRun = await langsmith.startRun({
+    name: runName,
+    runType: "llm",
+    inputs: { prompt },
+    parentRunId,
+    metadata: {
+      provider: "google-gemini",
+      ...metadata,
+    },
+    tags,
+  });
+
+  const startTime = Date.now();
+
   if (genAI && env.geminiApiKey) {
     const candidateModels = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash"];
     for (const modelName of candidateModels) {
@@ -50,6 +73,14 @@ async function generateJsonAnalysis(prompt, fallbackGenerator) {
         const text = result?.response?.text();
         const parsed = extractJsonFromText(text);
         if (parsed) {
+          await langsmith.endRun(llmRun.runId, {
+            outputs: { text, parsedJson: parsed },
+            metadata: {
+              selectedModel: modelName,
+              latencyMs: Date.now() - startTime,
+              success: true,
+            },
+          });
           return parsed;
         }
       } catch (err) {
@@ -59,7 +90,20 @@ async function generateJsonAnalysis(prompt, fallbackGenerator) {
   }
 
   // Graceful fallback heuristics
-  return fallbackGenerator();
+  const fallbackOutput = fallbackGenerator();
+  await langsmith.endRun(llmRun.runId, {
+    outputs: {
+      isFallback: true,
+      parsedJson: fallbackOutput,
+      reason: genAI ? "Model parsing fallback" : "GEMINI_API_KEY_UNAVAILABLE",
+    },
+    metadata: {
+      latencyMs: Date.now() - startTime,
+      fallbackUsed: true,
+    },
+  });
+
+  return fallbackOutput;
 }
 
 module.exports = {

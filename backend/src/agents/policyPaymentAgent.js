@@ -7,6 +7,7 @@ const { createPaymentLink } = require("../services/razorpayService");
 const { computeCampaignMeasurement } = require("../services/measurementService");
 const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+const { langsmith } = require("../services/langsmithService");
 
 const MODULE_NAME = "Agent:Payment";
 
@@ -15,16 +16,26 @@ const MODULE_NAME = "Agent:Payment";
  * Enforces policy gates, executes bounded Razorpay money actions with strict idempotency,
  * and recovers gracefully from transient API failures without duplicate transactions.
  */
-async function executeApprovedCampaigns(targetProjectId = null) {
-  const query = {
-    status: { $in: ["approved", "executing"] },
-  };
-  if (targetProjectId) {
-    query.projectId = targetProjectId;
-  }
-  const approvedCampaigns = await Campaign.find(query).limit(5);
+async function executeApprovedCampaigns(targetProjectId = null, parentRunId = null) {
+  return await langsmith.withSpan(
+    {
+      name: "Agent4_PolicyPaymentAgent",
+      runType: "chain",
+      inputs: { targetProjectId },
+      parentRunId,
+      metadata: { agent: "policyPaymentAgent", version: "2.0" },
+      tags: ["agent4", "policy-payment", "razorpay"],
+    },
+    async (spanId) => {
+      const query = {
+        status: { $in: ["approved", "executing"] },
+      };
+      if (targetProjectId) {
+        query.projectId = targetProjectId;
+      }
+      const approvedCampaigns = await Campaign.find(query).limit(5);
 
-  const actionsExecuted = [];
+      const actionsExecuted = [];
 
   for (const campaign of approvedCampaigns) {
     try {
@@ -168,19 +179,41 @@ async function executeApprovedCampaigns(targetProjectId = null) {
           await new Promise((resolve) => setTimeout(resolve, 400));
 
           // Trigger Razorpay Payment Link API
-          const rzpResponse = await createPaymentLink({
-            amountPaise,
-            description: `${matchedPlan?.product || "SentiMind"} — ${isNegative ? "Customer Loyalty Remediation" : "Instant 1-Click Order"}`,
-            customerName: mention.author || "Valued Customer",
-            notes: {
-              source_platform: mention.platform,
-              source_mention_id: String(mention._id),
-              campaign_id: String(campaign._id),
-              idempotency_key: idempotencyKey,
-              credibility_score: String(credibility.score),
+          const rzpResponse = await langsmith.withSpan(
+            {
+              name: "Razorpay_CreatePaymentLink",
+              runType: "tool",
+              inputs: {
+                amountPaise,
+                amountINR: amountPaise / 100,
+                idempotencyKey,
+                customerName: mention.author || "Valued Customer",
+                platform: mention.platform,
+                campaignId: String(campaign._id),
+              },
+              parentRunId: spanId,
+              metadata: {
+                platform: mention.platform,
+                mentionId: String(mention._id),
+              },
+              tags: ["razorpay", "payment-link", "commerce-action"],
             },
-            idempotencyKey,
-          });
+            async () => {
+              return await createPaymentLink({
+                amountPaise,
+                description: `${matchedPlan?.product || "SentiMind"} — ${isNegative ? "Customer Loyalty Remediation" : "Instant 1-Click Order"}`,
+                customerName: mention.author || "Valued Customer",
+                notes: {
+                  source_platform: mention.platform,
+                  source_mention_id: String(mention._id),
+                  campaign_id: String(campaign._id),
+                  idempotency_key: idempotencyKey,
+                  credibility_score: String(credibility.score),
+                },
+                idempotencyKey,
+              });
+            }
+          );
 
           const productName = matchedPlan?.product || "Exclusive Selection";
           const discountPct = matchedPlan?.discountPercent || 15;
@@ -234,7 +267,9 @@ async function executeApprovedCampaigns(targetProjectId = null) {
     }
   }
 
-  return actionsExecuted;
+      return actionsExecuted;
+    }
+  );
 }
 
 /**

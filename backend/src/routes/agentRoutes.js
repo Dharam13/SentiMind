@@ -10,6 +10,7 @@ const { processPendingSignals } = require("../agents/intentRootCauseAgent");
 const { processAnalyzedRootCauses } = require("../agents/campaignOrchestratorAgent");
 const { executeApprovedCampaigns } = require("../agents/policyPaymentAgent");
 const { computeCampaignMeasurement } = require("../services/measurementService");
+const { langsmith } = require("../services/langsmithService");
 const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
 
@@ -214,6 +215,22 @@ router.post("/campaigns/:id/reject", async (req, res, next) => {
 });
 
 /**
+ * GET /api/agent/observability/status
+ * Telemetry health & LangSmith metadata for UI dashboard
+ */
+router.get("/observability/status", (req, res) => {
+  const status = langsmith.getStatus();
+  return res.status(200).json({
+    success: true,
+    observability: {
+      ...status,
+      dashboardUrl: "https://smith.langchain.com",
+      projectUrl: `https://smith.langchain.com/o/default/projects/p/${status.project || "sentimind-agentic-observability"}`,
+    },
+  });
+});
+
+/**
  * POST /api/agent/test-spike
  * Demo trigger: Injects a sentiment spike and runs the 4 agents in seconds!
  */
@@ -228,100 +245,120 @@ router.post("/test-spike", async (req, res, next) => {
 
     logger.info("AgentRoute", `Simulating ${spikeType} for ${keyword} (Project ${projectId})`, { projectId, keyword });
 
-    // 1. Fetch real collected mentions for this brand/project
-    const isNegative = spikeType === "negative_spike";
-    let realMentions = await Mention.find({
-      projectId,
-      sentimentStatus: "completed",
-      ...(isNegative ? { "sentiment.label": "negative" } : { "sentiment.label": "positive" }),
-    })
-      .sort({ publishedAt: -1 })
-      .limit(10)
-      .lean();
+    const loopResult = await langsmith.withSpan(
+      {
+        name: "SentiMind_Autonomous_Agent_Loop",
+        runType: "chain",
+        inputs: { projectId, spikeType, keyword, simulation: true },
+        metadata: { projectId, spikeType, keyword, trigger: "manual_simulation" },
+        tags: ["autonomous-loop", "simulation", "e2e"],
+      },
+      async (rootTraceId) => {
+        // 1. Fetch real collected mentions for this brand/project
+        const isNegative = spikeType === "negative_spike";
+        let realMentions = await Mention.find({
+          projectId,
+          sentimentStatus: "completed",
+          ...(isNegative ? { "sentiment.label": "negative" } : { "sentiment.label": "positive" }),
+        })
+          .sort({ publishedAt: -1 })
+          .limit(10)
+          .lean();
 
-    // Fallback to recent completed mentions if specific sentiment label mentions are limited
-    if (realMentions.length < 2) {
-      realMentions = await Mention.find({
-        projectId,
-        sentimentStatus: "completed",
-      })
-        .sort({ publishedAt: -1 })
-        .limit(10)
-        .lean();
-    }
+        // Fallback to recent completed mentions if specific sentiment label mentions are limited
+        if (realMentions.length < 2) {
+          realMentions = await Mention.find({
+            projectId,
+            sentimentStatus: "completed",
+          })
+            .sort({ publishedAt: -1 })
+            .limit(10)
+            .lean();
+        }
 
-    // 2. Run Agent 1: Signal Detector
-    let signals = await runSentimentSignalCheck(projectId, true);
+        // 2. Run Agent 1: Signal Detector
+        let signals = await runSentimentSignalCheck(projectId, true, rootTraceId);
 
-    // If no signal was auto-detected from baseline comparison, construct signal using real evidence mentions
-    if (!signals || signals.length === 0) {
-      const platforms = [...new Set(realMentions.map((m) => m.platform).filter(Boolean))];
-      const posCount = realMentions.filter((m) => m.sentiment?.label === "positive").length;
-      const negCount = realMentions.filter((m) => m.sentiment?.label === "negative").length;
-      const total = realMentions.length || 1;
+        // If no signal was auto-detected from baseline comparison, construct signal using real evidence mentions
+        if (!signals || signals.length === 0) {
+          const platforms = [...new Set(realMentions.map((m) => m.platform).filter(Boolean))];
+          const posCount = realMentions.filter((m) => m.sentiment?.label === "positive").length;
+          const negCount = realMentions.filter((m) => m.sentiment?.label === "negative").length;
+          const total = realMentions.length || 1;
 
-      const simSignal = await Signal.create({
-        projectId,
-        keyword,
-        type: isNegative ? "negative_spike" : "positive_spike",
-        severity: isNegative ? "high" : "medium",
-        title: isNegative
-          ? `Detected Negative Sentiment Spike (${Math.round((negCount / total) * 100)}% Negative)`
-          : `Detected Viral Brand Advocacy Surge (${Math.round((posCount / total) * 100)}% Positive)`,
-        description: isNegative
-          ? `Customer friction detected across social discussions for ${keyword}. Remediation voucher response recommended.`
-          : `Positive buying momentum and advocacy detected for ${keyword}. Immediate 1-click checkout recommended.`,
-        baseline: {
-          positivePercent: isNegative ? 50 : 30,
-          neutralPercent: 30,
-          negativePercent: isNegative ? 20 : 10,
-          avgDailyVolume: Math.max(5, total),
-          hoursWindow: 168,
-        },
-        current: {
-          positivePercent: Math.round((posCount / total) * 100),
-          neutralPercent: Math.round(((total - posCount - negCount) / total) * 100),
-          negativePercent: Math.round((negCount / total) * 100),
-          mentionCount: total,
-          hoursWindow: 6,
-        },
-        deviationFactor: isNegative ? 2.8 : 2.4,
-        triggeringMentionIds: realMentions.map((m) => m._id),
-        platforms: platforms.length ? platforms : ["twitter", "reddit"],
-        status: "detected",
-      });
-      signals = [simSignal];
-    }
+          const simSignal = await Signal.create({
+            projectId,
+            keyword,
+            type: isNegative ? "negative_spike" : "positive_spike",
+            severity: isNegative ? "high" : "medium",
+            title: isNegative
+              ? `Detected Negative Sentiment Spike (${Math.round((negCount / total) * 100)}% Negative)`
+              : `Detected Viral Brand Advocacy Surge (${Math.round((posCount / total) * 100)}% Positive)`,
+            description: isNegative
+              ? `Customer friction detected across social discussions for ${keyword}. Remediation voucher response recommended.`
+              : `Positive buying momentum and advocacy detected for ${keyword}. Immediate 1-click checkout recommended.`,
+            baseline: {
+              positivePercent: isNegative ? 50 : 30,
+              neutralPercent: 30,
+              negativePercent: isNegative ? 20 : 10,
+              avgDailyVolume: Math.max(5, total),
+              hoursWindow: 168,
+            },
+            current: {
+              positivePercent: Math.round((posCount / total) * 100),
+              neutralPercent: Math.round(((total - posCount - negCount) / total) * 100),
+              negativePercent: Math.round((negCount / total) * 100),
+              mentionCount: total,
+              hoursWindow: 6,
+            },
+            deviationFactor: isNegative ? 2.8 : 2.4,
+            triggeringMentionIds: realMentions.map((m) => m._id),
+            platforms: platforms.length ? platforms : ["twitter", "reddit"],
+            status: "detected",
+          });
+          signals = [simSignal];
+        }
 
-    // 3. Run Agent 2: Root-Cause Agent
-    const rootCauses = await processPendingSignals(projectId);
+        // 3. Run Agent 2: Root-Cause Agent
+        const rootCauses = await processPendingSignals(projectId, rootTraceId);
 
-    // 4. Run Agent 3: Campaign Orchestrator Agent
-    const campaigns = await processAnalyzedRootCauses(projectId);
+        // 4. Run Agent 3: Campaign Orchestrator Agent
+        const campaigns = await processAnalyzedRootCauses(projectId, rootTraceId);
 
-    // 5. Run Agent 4: Policy & Payment Agent (Auto-executes approved campaigns to populate live actions)
-    for (const camp of campaigns) {
-      if (camp.status === "pending_approval") {
-        camp.status = "approved";
-        camp.approvedAt = new Date();
-        camp.approvedBy = "Autonomous Loop (Simulation)";
-        await camp.save();
+        // 5. Run Agent 4: Policy & Payment Agent (Auto-executes approved campaigns to populate live actions)
+        for (const camp of campaigns) {
+          if (camp.status === "pending_approval") {
+            camp.status = "approved";
+            camp.approvedAt = new Date();
+            camp.approvedBy = "Autonomous Loop (Simulation)";
+            await camp.save();
+          }
+        }
+        const executedActions = await executeApprovedCampaigns(projectId, rootTraceId);
+
+        return {
+          rootTraceId,
+          signals,
+          rootCauses,
+          campaigns,
+          executedActions,
+        };
       }
-    }
-    const executedActions = await executeApprovedCampaigns(projectId);
+    );
 
     return res.status(200).json({
       success: true,
       message: `Full autonomous agent loop executed successfully!`,
+      traceId: loopResult.rootTraceId,
       stageOutputs: {
-        agent1_signalsDetected: signals.length,
-        agent2_rootCausesDiagnosed: rootCauses.length,
-        agent3_campaignsPlanned: campaigns.length,
-        agent4_actionsExecuted: executedActions.length,
-        signals,
-        rootCauses,
-        campaigns,
-        actions: executedActions,
+        agent1_signalsDetected: loopResult.signals.length,
+        agent2_rootCausesDiagnosed: loopResult.rootCauses.length,
+        agent3_campaignsPlanned: loopResult.campaigns.length,
+        agent4_actionsExecuted: loopResult.executedActions.length,
+        signals: loopResult.signals,
+        rootCauses: loopResult.rootCauses,
+        campaigns: loopResult.campaigns,
+        actions: loopResult.executedActions,
       },
     });
   } catch (err) {
@@ -341,17 +378,33 @@ router.post("/trigger-pipeline", async (req, res, next) => {
       deviation: req.body.deviation,
     });
 
-    const signals = await runSentimentSignalCheck(projectId, true);
-    const rootCauses = await processPendingSignals(projectId);
-    const campaigns = await processAnalyzedRootCauses(projectId);
-    const executedActions = await executeApprovedCampaigns(projectId);
+    const pipeResult = await langsmith.withSpan(
+      {
+        name: "SentiMind_Autonomous_Pipeline",
+        runType: "chain",
+        inputs: { projectId, deviation: req.body.deviation, trigger: "auto_background" },
+        metadata: { projectId, trigger: "celery_collector_event" },
+        tags: ["autonomous-pipeline", "automated"],
+      },
+      async (rootTraceId) => {
+        const signals = await runSentimentSignalCheck(projectId, true, rootTraceId);
+        const rootCauses = await processPendingSignals(projectId, rootTraceId);
+        const campaigns = await processAnalyzedRootCauses(projectId, rootTraceId);
+        const executedActions = await executeApprovedCampaigns(projectId, rootTraceId);
+
+        return {
+          rootTraceId,
+          signalsCount: signals.length,
+          rootCausesCount: rootCauses.length,
+          campaignsCount: campaigns.length,
+          actionsCount: executedActions.length,
+        };
+      }
+    );
 
     return res.status(200).json({
       success: true,
-      signalsCount: signals.length,
-      rootCausesCount: rootCauses.length,
-      campaignsCount: campaigns.length,
-      actionsCount: executedActions.length,
+      ...pipeResult,
     });
   } catch (err) {
     next(err);

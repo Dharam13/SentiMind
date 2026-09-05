@@ -278,3 +278,17 @@ export async function markPaymentConverted(actionId: string): Promise<any> {
 export async function getAgentCatalog(): Promise<any> {
   return request(`/api/agent/catalog`);
 }
+
+export interface ObservabilityStatus {
+  enabled: boolean;
+  project: string;
+  endpoint: string;
+  hasApiKey: boolean;
+  dashboardUrl: string;
+  projectUrl: string;
+}
+
+export async function getObservabilityStatus(): Promise<{ success: boolean; observability: ObservabilityStatus }> {
+  return request(`/api/agent/observability/status`);
+}
+

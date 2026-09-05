@@ -66,6 +66,12 @@ const env = {
   spikeMinMentions: parseInt(optionalEnv("SPIKE_MIN_MENTIONS", "2"), 10),
   baselineHours: parseInt(optionalEnv("BASELINE_HOURS", "168"), 10),
   windowHours: parseInt(optionalEnv("WINDOW_HOURS", "6"), 10),
+
+  // LangSmith Observability
+  langchainTracingV2: optionalEnv("LANGCHAIN_TRACING_V2", "false") === "true",
+  langchainApiKey: optionalEnv("LANGCHAIN_API_KEY", ""),
+  langchainProject: optionalEnv("LANGCHAIN_PROJECT", "sentimind-agentic-observability"),
+  langchainEndpoint: optionalEnv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
 };
 
 module.exports = { env };

@@ -7,6 +7,7 @@ const { generateJsonAnalysis } = require("../services/geminiService");
 const { buildCampaignPrompt } = require("../constants/prompts");
 const { logger } = require("../utils/logger");
 const { env } = require("../config/env");
+const { langsmith } = require("../services/langsmithService");
 
 const MODULE_NAME = "Agent:Campaign";
 
@@ -14,14 +15,24 @@ const MODULE_NAME = "Agent:Campaign";
  * Agent 3: Campaign Orchestrator Agent
  * Converts root-cause diagnoses into structured, bounded marketing & commerce campaigns.
  */
-async function processAnalyzedRootCauses(targetProjectId = null) {
-  const query = { status: "analyzed" };
-  if (targetProjectId) {
-    query.projectId = targetProjectId;
-  }
-  const pendingRootCauses = await RootCause.find(query).limit(5);
+async function processAnalyzedRootCauses(targetProjectId = null, parentRunId = null) {
+  return await langsmith.withSpan(
+    {
+      name: "Agent3_CampaignOrchestrator",
+      runType: "chain",
+      inputs: { targetProjectId },
+      parentRunId,
+      metadata: { agent: "campaignOrchestratorAgent", version: "2.0" },
+      tags: ["agent3", "campaign-orchestrator"],
+    },
+    async (spanId) => {
+      const query = { status: "analyzed" };
+      if (targetProjectId) {
+        query.projectId = targetProjectId;
+      }
+      const pendingRootCauses = await RootCause.find(query).limit(5);
 
-  const campaignsCreated = [];
+      const campaignsCreated = [];
 
   for (const rc of pendingRootCauses) {
     try {
@@ -99,7 +110,16 @@ async function processAnalyzedRootCauses(targetProjectId = null) {
         };
       };
 
-      const plan = await generateJsonAnalysis(prompt, fallbackGenerator);
+      const plan = await generateJsonAnalysis(prompt, fallbackGenerator, {
+        parentRunId: spanId,
+        runName: "Gemini_Campaign_Inference",
+        metadata: {
+          rootCauseId: String(rc._id),
+          brand: brandKeyword,
+          category: rc.category,
+          urgency: rc.urgency,
+        },
+      });
 
       const campaign = await Campaign.create({
         projectId: rc.projectId,
@@ -147,7 +167,9 @@ async function processAnalyzedRootCauses(targetProjectId = null) {
     }
   }
 
-  return campaignsCreated;
+      return campaignsCreated;
+    }
+  );
 }
 
 module.exports = {
