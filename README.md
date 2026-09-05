@@ -164,4 +164,3 @@ Access the UI at: **http://localhost:3000**
 
 - **[Business Logic & Architecture Guide](./BUSINESS_LOGIC_AND_ARCHITECTURE.md)**: Market facts on customer churn, influencer scoring formula, 3 pipeline stages, and Razorpay scenarios.
 - **[Setup & Deployment Guide](./SETUP.md)**: Detailed step-by-step developer setup, database migrations, and troubleshooting.
-- **[Smart RSS Metrics Guide](./SMART_RSS_METRICS.md)**: Domain authority scoring algorithm for news, LinkedIn, and Medium RSS sources.
